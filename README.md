@@ -113,14 +113,5 @@ root@3acae1260562:/data#
 
 ```
 
-## To Do
-
-Package this into a docker container for more fun .
-
-Credits & references : 
-http://docs.docker.com/userguide/dockervolumes/#creating-and-mounting-a-data-volume-container
-
-## Need support?
-
 ## Sources
 Based on the code from docker-volume-backup : https://github.com/paimpozhil/docker-volume-backup
