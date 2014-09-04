@@ -7,8 +7,14 @@ from subprocess import call
 c = docker.Client(base_url='unix://var/run/docker.sock',
                   version='1.9',
                   timeout=10)
-
+def usage():
+	print "python backup.py [backup/restore] data-container-name [restore-container-name]"
+	
 #first argument is the option backup/restore
+if len(sys.argv) < 2:
+	usage()
+	sys.exit(1)
+
 option = sys.argv[1]
 name = sys.argv[2]
 
@@ -54,8 +60,5 @@ elif option == "restore":
 	print runstring
 	call(runstring,shell=True)
 	
-elif option == "help":
-	print "python backup.py [backup/restore] data-container-name [restore-container-name]"
 else:
-	print "python backup.py [backup/restore] data-container-name [restore-container-name]"
-
+	usage()
