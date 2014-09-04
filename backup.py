@@ -2,6 +2,7 @@ import docker
 import sys
 import pickle
 import tarfile
+import os
 from subprocess import call
 
 c = docker.Client(base_url='unix://var/run/docker.sock',
@@ -40,9 +41,10 @@ if option == "backup":
 	print "writing meta data to file "
 	pickle.dump ( container , open ("metadata","wb") )
 
-	tar = tarfile.open(name + ".tar", "w:gz")
 	if dockerized():
 		tar = tarfile.open(datadir + "/" + name + ".tar", "w:gz")
+	else:
+		tar = tarfile.open(name + ".tar", "w:gz")
 	tar.add("metadata")
 	for i, v in enumerate(volumes):
 	    print  v, volumes[v]
@@ -53,19 +55,27 @@ elif option == "restore":
 	#third argument is the restored container name
 	destname = sys.argv[3]
 	
-	print "Restoring"
-	tar = tarfile.open(name + ".tar")
+	print "Restoring "+name+".tar into "+destname
 	if dockerized():
 		tar = tarfile.open(datadir + "/" + name + ".tar")
+	else:
+		tar = tarfile.open(name + ".tar")
 	metadatafile =  tar.extractfile("metadata")
 	metadata =  pickle.load(metadatafile)
+#	import pprint
+#	pp = pprint.PrettyPrinter(indent=4)
+#	pp.pprint(metadata)
 
-#	print metadata
 	imagename = metadata["Config"]["Image"]
 	volumes =  metadata['Volumes']
-	print volumes
+	envs = metadata['Config']['Env']
+	envlist = []
 	vlist = []
 	binds = {} 
+
+	#Re-inject Env Vars	
+	for i, v in enumerate(envs):
+		envlist.append(v)
 
 	for i, v in enumerate(volumes):
        		print  v, volumes[v]
@@ -75,11 +85,20 @@ elif option == "restore":
 			binding = { volumes[v]:{'bind':v} }
 			binds.update(binding)
 
-	restored_container = c.create_container(imagename,tty=True,volumes=vlist,name=destname)
-	c.start(restored_container,binds=binds);
-	runstring = "docker run --rm -ti --volumes-from " + restored_container['Id'] +" -v $(pwd):/backup2  ubuntu tar xvf /backup2/"+ name +".tar"
-	print runstring
-	call(runstring,shell=True)
+	restored_container = c.create_container(imagename,tty=True,volumes=vlist,environment=envlist,name=destname)
+
+#NEED TO ADD A CHECK IF BINDS EMPTY
+
+	restorer_container = c.create_container('ubuntu',detach=False, stdin_open=True, tty=True, command="tar xvf /backup2/"+ name +".tar", volumes=vlist)
+	print "Starting Restoration container ("+restorer_container['Id']+")"
+	binds.update({ str(os.path.dirname(os.path.realpath(__file__))): {'bind': '/backup2'} })
+	c.start(restorer_container,binds=binds)
+
+	print "Waiting for the end of restore container ..."
+	c.wait(restorer_container)
+	c.remove_container(restorer_container)
 	
+	print "Starting "+destname+" container..."
+	c.start(restored_container,binds=binds);
 else:
 	usage()
