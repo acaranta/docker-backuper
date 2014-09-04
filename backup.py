@@ -55,6 +55,7 @@ elif option == "restore":
 	call(runstring,shell=True)
 	
 elif option == "help":
-	print "python backup.py [backup/restore] data-container-name [restore-contianer-name]"
-
+	print "python backup.py [backup/restore] data-container-name [restore-container-name]"
+else
+	print "python backup.py [backup/restore] data-container-name [restore-container-name]"
 
