@@ -12,6 +12,7 @@ def usage():
 	
 #first argument is the option backup/restore
 if len(sys.argv) < 2:
+	print "Not enough arguments !!"
 	usage()
 	sys.exit(1)
 
