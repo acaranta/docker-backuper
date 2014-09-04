@@ -87,8 +87,6 @@ elif option == "restore":
 
 	restored_container = c.create_container(imagename,tty=True,volumes=vlist,environment=envlist,name=destname)
 
-#NEED TO ADD A CHECK IF BINDS EMPTY
-
 	restorer_container = c.create_container('ubuntu',detach=False, stdin_open=True, tty=True, command="tar xvf /backup2/"+ name +".tar", volumes=vlist)
 	print "Starting Restoration container ("+restorer_container['Id']+")"
 	binds.update({ str(os.path.dirname(os.path.realpath(__file__))): {'bind': '/backup2'} })
@@ -97,7 +95,9 @@ elif option == "restore":
 	print "Waiting for the end of restore container ..."
 	c.wait(restorer_container)
 	c.remove_container(restorer_container)
-	
+
+	del binds[str(os.path.dirname(os.path.realpath(__file__)))]
+
 	print "Starting "+destname+" container..."
 	c.start(restored_container,binds=binds);
 else:
