@@ -33,7 +33,11 @@ datadir = "/backup"
 
 if option == "backup":
 	# second argument is the container name
+
 	container = c.inspect_container(name)
+	import pprint
+	pp = pprint.PrettyPrinter(indent=4)
+	pp.pprint(container)
 	container_name =  container['Name']
 	print "Backing up : " + container_name
 	volumes =  container['Volumes']
@@ -62,18 +66,44 @@ elif option == "restore":
 		tar = tarfile.open(name + ".tar")
 	metadatafile =  tar.extractfile("metadata")
 	metadata =  pickle.load(metadatafile)
-#	import pprint
-#	pp = pprint.PrettyPrinter(indent=4)
-#	pp.pprint(metadata)
 
 	imagename = metadata["Config"]["Image"]
 	volumes =  metadata['Volumes']
 	envs = metadata['Config']['Env']
+	ports = metadata['NetworkSettings']['Ports']
 	envlist = []
 	vlist = []
 	binds = {} 
-
+	portslist = []
+	portsbindings = {}
+	import pprint
+	pp = pprint.PrettyPrinter(indent=4)
+#	pp.pprint(ports)
 	#Re-inject Env Vars	
+	for i, v in enumerate(ports):
+#		print v, ports[v]
+		if v.split('/')[1] == 'tcp':
+			portslist.append(int(v.split('/')[0]))
+		elif v.split('/')[1] == 'udp':
+			portslist.append((int(v.split('/')[0]),'udp'))
+		if ports[v] is list:
+			for j, p in enumerate(ports[v]):
+				print p['HostIp']
+				print p['HostPort']
+				if v.split('/')[1] == 'tcp':
+					portsbindings[int(p['HostPort'])] = (p['HostIp'], v.split('/')[0])
+				elif v.split('/')[1] == 'udp':
+					portsbindings[p['HostPort']+"/udp"] = (p['HostIp'], v.split('/')[0])
+		else:
+			if v.split('/')[1] == 'tcp':
+				portsbindings[int(v.split('/')[0])] = ports[v]
+			elif v.split('/')[1] == 'udp':
+				portsbindings[v] = ports[v]
+
+	print "Ports lists"	
+	pp.pprint(portslist)
+	pp.pprint(portsbindings)
+
 	for i, v in enumerate(envs):
 		envlist.append(v)
 
@@ -84,8 +114,7 @@ elif option == "restore":
 		if str(volumes[v]).find('/var/lib/docker/vfs/dir/') < 0:
 			binding = { volumes[v]:{'bind':v} }
 			binds.update(binding)
-
-	restored_container = c.create_container(imagename,tty=True,volumes=vlist,environment=envlist,name=destname)
+	restored_container = c.create_container(imagename,tty=True,volumes=vlist,environment=envlist,name=destname,ports=portslist)
 
 	restorer_container = c.create_container('ubuntu',detach=False, stdin_open=True, tty=True, command="tar xvf /backup2/"+ name +".tar", volumes=vlist)
 	print "Starting Restoration container ("+restorer_container['Id']+")"
@@ -99,6 +128,6 @@ elif option == "restore":
 	del binds[str(os.path.dirname(os.path.realpath(__file__)))]
 
 	print "Starting "+destname+" container..."
-	c.start(restored_container,binds=binds);
+	c.start(restored_container,binds=binds,port_bindings=portsbindings);
 else:
 	usage()
