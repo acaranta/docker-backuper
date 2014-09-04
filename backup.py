@@ -7,11 +7,19 @@ from subprocess import call
 c = docker.Client(base_url='unix://var/run/docker.sock',
                   version='1.9',
                   timeout=10)
+
+#Prints Help Message
 def usage():
 	print "python backup.py [backup/restore] data-container-name [restore-container-name]"
-	
+
+#Determines if we run within a docker container
+#Might not be truly cleany as a way to check but it works ;)
+def dockerized():
+	if 'docker' in open('/proc/1/cgroup').read():
+		return True
+
 #first argument is the option backup/restore
-if len(sys.argv) < 2:
+if len(sys.argv) < 3:
 	print "Not enough arguments !!"
 	usage()
 	sys.exit(1)
@@ -19,6 +27,8 @@ if len(sys.argv) < 2:
 option = sys.argv[1]
 name = sys.argv[2]
 
+#Location of the tar files (for a container running)
+datadir = "/backup"
 
 if option == "backup":
 	# second argument is the container name
@@ -31,6 +41,8 @@ if option == "backup":
 	pickle.dump ( container , open ("metadata","wb") )
 
 	tar = tarfile.open(name + ".tar", "w:gz")
+	if dockerized():
+		tar = tarfile.open(datadir + "/" + name + ".tar", "w:gz")
 	tar.add("metadata")
 	for i, v in enumerate(volumes):
 	    print  v, volumes[v]
@@ -43,6 +55,8 @@ elif option == "restore":
 	
 	print "Restoring"
 	tar = tarfile.open(name + ".tar")
+	if dockerized():
+		tar = tarfile.open(datadir + "/" + name + ".tar")
 	metadatafile =  tar.extractfile("metadata")
 	metadata =  pickle.load(metadatafile)
 
