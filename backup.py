@@ -56,6 +56,6 @@ elif option == "restore":
 	
 elif option == "help":
 	print "python backup.py [backup/restore] data-container-name [restore-container-name]"
-else
+else:
 	print "python backup.py [backup/restore] data-container-name [restore-container-name]"
 
