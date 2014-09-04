@@ -63,14 +63,20 @@ elif option == "restore":
 #	print metadata
 	imagename = metadata["Config"]["Image"]
 	volumes =  metadata['Volumes']
+	print volumes
 	vlist = []
+	binds = {} 
 
 	for i, v in enumerate(volumes):
        		print  v, volumes[v]
 		vlist.append(v)
+		#check if volume has a binding, and add it to bindings for inplace restore
+		if str(volumes[v]).find('/var/lib/docker/vfs/dir/') < 0:
+			binding = { volumes[v]:{'bind':v} }
+			binds.update(binding)
 
 	restored_container = c.create_container(imagename,tty=True,volumes=vlist,name=destname)
-	c.start(restored_container);
+	c.start(restored_container,binds=binds);
 	runstring = "docker run --rm -ti --volumes-from " + restored_container['Id'] +" -v $(pwd):/backup2  ubuntu tar xvf /backup2/"+ name +".tar"
 	print runstring
 	call(runstring,shell=True)
