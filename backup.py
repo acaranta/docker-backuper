@@ -11,7 +11,17 @@ c = docker.Client(base_url='unix://var/run/docker.sock',
 
 #Prints Help Message
 def usage():
-	print "python backup.py [backup/restore] data-container-name [restore-container-name]"
+	print "Running normally :"
+	print " python backup.py [backup/restore] data-container-name [restore-container-name]"
+	print "Running withing as a docker image (named docker-volume-backup) :"
+	print " docker run -t -i --rm \ "
+	print "  -v /var/lib/docker/vfs:/var/lib/docker/vfs \ "
+	print "  -v /var/run/docker.sock:/var/run/docker.sock -v /tmp:/backup docker-volume-backup \ "
+	print "  backup <container>"
+	print "docker run -t -i --rm \ "
+	print "  -v /var/lib/docker/vfs:/var/lib/docker/vfs \ "
+	print "  -v /var/run/docker.sock:/var/run/docker.sock \ "
+	print "  restore <backupedcontainer> <newcontainer> <tar storage absolute path on host>"
 
 #Determines if we run within a docker container
 #Might not be truly cleany as a way to check but it works ;)
@@ -58,7 +68,11 @@ if option == "backup":
 elif option == "restore":
 	#third argument is the restored container name
 	destname = sys.argv[3]
-	
+	if dockerized() and len(sys.argv) < 5:
+		print "Restore Storage is missing !"
+		usage()
+		sys.exit(1)
+
 	print "Restoring "+name+".tar into "+destname
 	if dockerized():
 		tar = tarfile.open(datadir + "/" + name + ".tar")
@@ -115,19 +129,35 @@ elif option == "restore":
 			binding = { volumes[v]:{'bind':v} }
 			binds.update(binding)
 	restored_container = c.create_container(imagename,tty=True,volumes=vlist,environment=envlist,name=destname,ports=portslist)
+	print "Starting "+destname+" container..."
+	c.start(restored_container,binds=binds,port_bindings=portsbindings);
+
+	#Recreate volumes_from (as it does not work when binds+volumes_from are used together
+	infodest = c.inspect_container(restored_container)
+	volumes = infodest['Volumes']
+	vlist = []
+	binds = {}
+	for i, v in enumerate(volumes):
+		vlist.append(v)
+		binding = { volumes[v]:{'bind':v} }
+		binds.update(binding)
+
+        #Add tar storage to bindings list
+        if dockerized():
+                datadir = sys.argv[4]
+                binds.update({str(datadir): {'bind': '/backup2'} })
+        else:
+                binds.update({ str(os.path.dirname(os.path.realpath(__file__))): {'bind': '/backup2'} })
+
 
 	restorer_container = c.create_container('ubuntu',detach=False, stdin_open=True, tty=True, command="tar xvf /backup2/"+ name +".tar", volumes=vlist)
 	print "Starting Restoration container ("+restorer_container['Id']+")"
-	binds.update({ str(os.path.dirname(os.path.realpath(__file__))): {'bind': '/backup2'} })
 	c.start(restorer_container,binds=binds)
 
 	print "Waiting for the end of restore container ..."
 	c.wait(restorer_container)
+	print c.logs(restorer_container['Id'])
 	c.remove_container(restorer_container)
 
-	del binds[str(os.path.dirname(os.path.realpath(__file__)))]
-
-	print "Starting "+destname+" container..."
-	c.start(restored_container,binds=binds,port_bindings=portsbindings);
 else:
 	usage()
