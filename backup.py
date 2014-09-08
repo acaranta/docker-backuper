@@ -1,10 +1,24 @@
+#!/usr/bin/python
+
 import docker
+import argparse
 import sys
 import pickle
 import tarfile
 import os
 from subprocess import call
 
+#Arguments parsing
+argsparser = argparse.ArgumentParser()
+argsparser.add_argument("action", choices=["backup", "restore"])
+argsparser.add_argument("container")
+argsparser.add_argument("-s","--storage", help="[BACKUP/RESTORE] where to store/restore data, defaults to current path (for BACKUP running inside a container, this parameter isn't used)", metavar="Absolute_Storage_Path")
+argsparser.add_argument("-d","--destcontainer", help="[RESTORE] name of the restored container, defaults to source container name", metavar="destcontainername")
+
+args=argsparser.parse_args()
+
+
+#Initialize docker client
 c = docker.Client(base_url='unix://var/run/docker.sock',
                   version='1.9',
                   timeout=10)
@@ -29,19 +43,12 @@ def dockerized():
 	if 'docker' in open('/proc/1/cgroup').read():
 		return True
 
-#first argument is the option backup/restore
-if len(sys.argv) < 3:
-	print "Not enough arguments !!"
-	usage()
-	sys.exit(1)
-
-option = sys.argv[1]
-name = sys.argv[2]
+name = args.container
 
 #Location of the tar files (for a container running)
 datadir = "/backup"
 
-if option == "backup":
+if args.action == "backup":
 	# second argument is the container name
 
 	container = c.inspect_container(name)
@@ -54,20 +61,25 @@ if option == "backup":
 	
 	print "writing meta data to file "
 	pickle.dump ( container , open ("metadata","wb") )
-
+#NEED TO FIND A WAY TO SET DIFFERENT PATHS FOR BACK (Containerized backup TOO ?)
 	if dockerized():
 		tar = tarfile.open(datadir + "/" + name + ".tar", "w:gz")
 	else:
-		tar = tarfile.open(name + ".tar", "w:gz")
+		if args.storage:
+			tar = tarfile.open(args.storage + "/" + name + ".tar", "w:gz")
+		else:
+			tar = tarfile.open(name + ".tar", "w:gz")
 	tar.add("metadata")
 	for i, v in enumerate(volumes):
 	    print  v, volumes[v]
 	    tar.add(volumes[v],v)
 	tar.close()
 
-elif option == "restore":
+elif args.action == "restore":
 	#third argument is the restored container name
-	destname = sys.argv[3]
+	destname = args.container
+	if args.destcontainer:
+		destname = args.destcontainer
 	if dockerized() and len(sys.argv) < 5:
 		print "Restore Storage is missing !"
 		usage()
@@ -90,12 +102,8 @@ elif option == "restore":
 	binds = {} 
 	portslist = []
 	portsbindings = {}
-	import pprint
-	pp = pprint.PrettyPrinter(indent=4)
-#	pp.pprint(ports)
 	#Re-inject Env Vars	
 	for i, v in enumerate(ports):
-#		print v, ports[v]
 		if v.split('/')[1] == 'tcp':
 			portslist.append(int(v.split('/')[0]))
 		elif v.split('/')[1] == 'udp':
@@ -147,7 +155,10 @@ elif option == "restore":
                 datadir = sys.argv[4]
                 binds.update({str(datadir): {'bind': '/backup2'} })
         else:
-                binds.update({ str(os.path.dirname(os.path.realpath(__file__))): {'bind': '/backup2'} })
+		if args.storage:
+			binds.update({ args.storage: {'bind': '/backup2'} })
+		else:
+			binds.update({ str(os.path.dirname(os.path.realpath(__file__))): {'bind': '/backup2'} })
 
 
 	restorer_container = c.create_container('ubuntu',detach=False, stdin_open=True, tty=True, command="tar xvf /backup2/"+ name +".tar", volumes=vlist)
