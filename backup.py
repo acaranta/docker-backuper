@@ -8,6 +8,9 @@ import tarfile
 import os
 from subprocess import call
 
+import pprint
+pp = pprint.PrettyPrinter(indent=4)
+
 #Arguments parsing
 argsparser = argparse.ArgumentParser()
 argsparser.add_argument("action", choices=["backup", "restore"])
@@ -23,52 +26,48 @@ c = docker.Client(base_url='unix://var/run/docker.sock',
                   version='1.9',
                   timeout=10)
 
-#Prints Help Message
-def usage():
-	print "Running normally :"
-	print " python backup.py [backup/restore] data-container-name [restore-container-name]"
-	print "Running withing as a docker image (named docker-volume-backup) :"
-	print " docker run -t -i --rm \ "
-	print "  -v /var/lib/docker/vfs:/var/lib/docker/vfs \ "
-	print "  -v /var/run/docker.sock:/var/run/docker.sock -v /tmp:/backup docker-volume-backup \ "
-	print "  backup <container>"
-	print "docker run -t -i --rm \ "
-	print "  -v /var/lib/docker/vfs:/var/lib/docker/vfs \ "
-	print "  -v /var/run/docker.sock:/var/run/docker.sock \ "
-	print "  restore <backupedcontainer> <newcontainer> <tar storage absolute path on host>"
-
 #Determines if we run within a docker container
 #Might not be truly cleany as a way to check but it works ;)
 def dockerized():
 	if 'docker' in open('/proc/1/cgroup').read():
 		return True
 
+#Check if a container exists (running or not)
+def check_container_exists(c, name):
+	containers = c.containers(all=True)
+	for i, container in enumerate(containers):
+		names = container['Names']
+		for j, n in enumerate(names):
+			if n == "/"+name:
+				return True
+	return False
+
+#source container name
 name = args.container
 
 #Location of the tar files (for a container running)
 datadir = "/backup"
 
 if args.action == "backup":
-	# second argument is the container name
-
 	container = c.inspect_container(name)
-	import pprint
-	pp = pprint.PrettyPrinter(indent=4)
-	pp.pprint(container)
+##	pp.pprint(container)
 	container_name =  container['Name']
-	print "Backing up : " + container_name
+	container_tarfile = ""
 	volumes =  container['Volumes']
 	
-	print "writing meta data to file "
-	pickle.dump ( container , open ("metadata","wb") )
 #NEED TO FIND A WAY TO SET DIFFERENT PATHS FOR BACK (Containerized backup TOO ?)
 	if dockerized():
 		tar = tarfile.open(datadir + "/" + name + ".tar", "w:gz")
+		container_tarfile = datadir + "/" + name + ".tar"
 	else:
 		if args.storage:
 			tar = tarfile.open(args.storage + "/" + name + ".tar", "w:gz")
+			container_tarfile = args.storage + "/" + name + ".tar"
 		else:
 			tar = tarfile.open(name + ".tar", "w:gz")
+			container_tarfile = name + ".tar"
+	print "Backing up : " + container_name + " to : " + container_tarfile
+	pickle.dump ( container , open ("metadata","wb") )
 	tar.add("metadata")
 	for i, v in enumerate(volumes):
 	    print  v, volumes[v]
@@ -80,16 +79,25 @@ elif args.action == "restore":
 	destname = args.container
 	if args.destcontainer:
 		destname = args.destcontainer
-	if dockerized() and len(sys.argv) < 5:
-		print "Restore Storage is missing !"
-		usage()
-		sys.exit(1)
 
-	print "Restoring "+name+".tar into "+destname
+	if check_container_exists(c, destname):
+		print "Destination container : "+ destname + " already exists ... cannot continue !!"
+		sys.exit(2)
+	
+	if dockerized() and not args.storage:
+		print "Restore Storage is missing !"
+		sys.exit(1)
+	if dockerized() and args.storage:
+		datadir = args.storage
+
+	container_tarfile = ""
 	if dockerized():
 		tar = tarfile.open(datadir + "/" + name + ".tar")
+		container_tarfile = datadir + "/" + name + ".tar"
 	else:
 		tar = tarfile.open(name + ".tar")
+		container_tarfile = name + ".tar"
+	print "Restoring "+container_tarfile+" into "+destname
 	metadatafile =  tar.extractfile("metadata")
 	metadata =  pickle.load(metadatafile)
 
@@ -103,28 +111,29 @@ elif args.action == "restore":
 	portslist = []
 	portsbindings = {}
 	#Re-inject Env Vars	
-	for i, v in enumerate(ports):
-		if v.split('/')[1] == 'tcp':
-			portslist.append(int(v.split('/')[0]))
-		elif v.split('/')[1] == 'udp':
-			portslist.append((int(v.split('/')[0]),'udp'))
-		if ports[v] is list:
-			for j, p in enumerate(ports[v]):
-				print p['HostIp']
-				print p['HostPort']
-				if v.split('/')[1] == 'tcp':
-					portsbindings[int(p['HostPort'])] = (p['HostIp'], v.split('/')[0])
-				elif v.split('/')[1] == 'udp':
-					portsbindings[p['HostPort']+"/udp"] = (p['HostIp'], v.split('/')[0])
-		else:
+	if ports:
+		for i, v in enumerate(ports):
 			if v.split('/')[1] == 'tcp':
-				portsbindings[int(v.split('/')[0])] = ports[v]
+				portslist.append(int(v.split('/')[0]))
 			elif v.split('/')[1] == 'udp':
-				portsbindings[v] = ports[v]
+				portslist.append((int(v.split('/')[0]),'udp'))
+			if ports[v] is list:
+				for j, p in enumerate(ports[v]):
+					print p['HostIp']
+					print p['HostPort']
+					if v.split('/')[1] == 'tcp':
+						portsbindings[int(p['HostPort'])] = (p['HostIp'], v.split('/')[0])
+					elif v.split('/')[1] == 'udp':
+						portsbindings[p['HostPort']+"/udp"] = (p['HostIp'], v.split('/')[0])
+			else:
+				if v.split('/')[1] == 'tcp':
+					portsbindings[int(v.split('/')[0])] = ports[v]
+				elif v.split('/')[1] == 'udp':
+					portsbindings[v] = ports[v]
 
-	print "Ports lists"	
-	pp.pprint(portslist)
-	pp.pprint(portsbindings)
+##	print "Ports lists"	
+##	pp.pprint(portslist)
+##	pp.pprint(portsbindings)
 
 	for i, v in enumerate(envs):
 		envlist.append(v)
