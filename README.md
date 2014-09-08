@@ -58,7 +58,9 @@ Once done, can can backup using :
 ```
 docker run -t -i --rm \
   -v /var/lib/docker/vfs:/var/lib/docker/vfs \
-  -v /var/run/docker.sock:/var/run/docker.sock -v /tmp:/backup docker-backuper \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v /tmp:/backup \
+  acaranta/docker-backuper \
   backup <container> 
 ```
 The .tar backups will be stored in /backup ... which you can bind to any dir on your docker host (above on `/tmp` not a good idea ;) )
@@ -69,9 +71,14 @@ Then you can restore using :
  docker run -t -i --rm \
   -v /var/lib/docker/vfs:/var/lib/docker/vfs \
   -v /var/run/docker.sock:/var/run/docker.sock \
+  -v /tmp:/backup \
+  acaranta/docker-backuper \
   restore <container> --destname <newcontainer> --storage /tmp
 ```
-The .tar backups will be Fetched in the argument passed as `--storage`. It works differently from the backup, because for the restore, a container is launched on the docker host with the data storage dir mounted directly in order to read the tar files.
+The .tar backups will be Fetched in the argument passed as `--storage`. It works differently from the backup, because for the restore, a container is launched on the docker host with the data storage dir mounted directly in order to read the tar files, it therefore need the `/backup` binding AND the --storage argument both pointing towards the same path.
+
+# DISCLAIMER 
+Please TEST your backup/restore procedure, your data, etc ... this is provided as-is and does not garantee anything ! ;)
 
 
 ## Sources

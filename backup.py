@@ -87,8 +87,8 @@ elif args.action == "restore":
 	if dockerized() and not args.storage:
 		print "Restore Storage is missing !"
 		sys.exit(1)
-	if dockerized() and args.storage:
-		datadir = args.storage
+#	if dockerized() and args.storage:
+#		datadir = args.storage
 
 	container_tarfile = ""
 	if dockerized():
@@ -161,7 +161,7 @@ elif args.action == "restore":
 
         #Add tar storage to bindings list
         if dockerized():
-                datadir = sys.argv[4]
+                datadir = args.storage
                 binds.update({str(datadir): {'bind': '/backup2'} })
         else:
 		if args.storage:
@@ -169,7 +169,7 @@ elif args.action == "restore":
 		else:
 			binds.update({ str(os.path.dirname(os.path.realpath(__file__))): {'bind': '/backup2'} })
 
-
+	pp.pprint(vlist)
 	restorer_container = c.create_container('ubuntu',detach=False, stdin_open=True, tty=True, command="tar xvf /backup2/"+ name +".tar", volumes=vlist)
 	print "Starting Restoration container ("+restorer_container['Id']+")"
 	c.start(restorer_container,binds=binds)
