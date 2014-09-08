@@ -77,6 +77,22 @@ Then you can restore using :
 ```
 The .tar backups will be Fetched in the argument passed as `--storage`. It works differently from the backup, because for the restore, a container is launched on the docker host with the data storage dir mounted directly in order to read the tar files, it therefore need the `/backup` binding AND the --storage argument both pointing towards the same path.
 
+##NOTES
+if a container was launched with a boud volume, ie :
+```
+docker run -d  -v /srv/docker-external-volumes/registry:/mnt/registry \
+	-e STORAGE_PATH=/mnt/registry/storage \
+	-e SQLALCHEMY_INDEX_DATABASE=sqlite:////mnt/registry/db/dbreg.sqlite \
+	-p 5000:5000 --name my_registry registry
+```
+(here `/srv/docker-external-volumes/registry` --> `/mnt/registry`)).
+The restore WILL take place in this bound path ... aka it will overwrite (it data is present) the contents of `/srv/docker-external-volumes/registry` !!!
+That is not a bug, it was designed like this ;)
+
+##TODO
+* remove the bound inplace restore by default and add a `--bound-restore` option ?
+* add a way to nicely name the tar files ?
+* add a way to timestamp the tar files and let the user choose different restore points ?
 # DISCLAIMER 
 Please TEST your backup/restore procedure, your data, etc ... this is provided as-is and does not garantee anything ! ;)
 
