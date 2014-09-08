@@ -96,7 +96,7 @@ That is not a bug, it was designed like this ;)
 * add a check to stop the backup if the container has no volumes !
 * add a few other checks and maybe errors interceptions to clean temp containers
 
-# DISCLAIMER 
+##DISCLAIMER 
 Please TEST your backup/restore procedure, your data, etc ... this is provided as-is and does not garantee anything ! ;)
 
 
