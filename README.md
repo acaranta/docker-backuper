@@ -16,22 +16,39 @@ pip install docker-py
 
 
 ##How to use
+Running backup.py with -h will produce :
 ```
-python backup.py backup [yourcontainername]
+usage: backup.py [-h] [-s Absolute_Storage_Path] [-d destcontainername]
+                 {backup,restore} container
+
+positional arguments:
+  {backup,restore}
+  container
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -s Absolute_Storage_Path, --storage Absolute_Storage_Path
+                        [BACKUP/RESTORE] where to store/restore data, defaults
+                        to current path (for BACKUP running inside a
+                        container, this parameter isn't used)
+  -d destcontainername, --destcontainer destcontainername
+                        [RESTORE] name of the restored container, defaults to
+                        source container name
 ```
-
-will output a tar file with name of your container that you can move around
-
+### Natively on host, BACKUP :
 ```
-python backup.py restore [yourcontainername] [destinationname]
+./backup.py backup containername --storage /tmp 
 ```
+This command will save the metadata and volumes as a tar file named : `/tmp/containername.tar`
+### Natively on host, RESTORE :
+```
+./backup.py restore containername --storage /tmp --destcontainer newone
+```
+This command will restore the container `containername` and its volumes as a new container named `newone` from the tar file named : `/tmp/containername.tar`
 
-will restore the tar backup as a new data container
 
-## Example usage:
-TBD
 
-## Run as a Container:
+### Run as a Container:
 First, you need to build it :
 ```
 docker build --rm --no-cache -t docker-volume-backup .
@@ -42,17 +59,19 @@ Once done, can can backup using :
 docker run -t -i --rm \
   -v /var/lib/docker/vfs:/var/lib/docker/vfs \
   -v /var/run/docker.sock:/var/run/docker.sock -v /tmp:/backup docker-volume-backup \
-  backup <container>
+  backup <container> 
 ```
-The .tar backups will be stored in /backup ... which you can bind to any dir on your docker host (above on /tmp not a good idea ;) )
+The .tar backups will be stored in /backup ... which you can bind to any dir on your docker host (above on `/tmp` not a good idea ;) )
+In this mode, the `--storage` option is ignored as the data will be stored in the bound directory `/backup`
 
+Then you can restore using :
 ```
  docker run -t -i --rm \
   -v /var/lib/docker/vfs:/var/lib/docker/vfs \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  restore <backupedcontainer> <newcontainer> <tar storage absolute path on host>
+  restore <container> --destname <newcontainer> --storage /tmp
 ```
-The .tar backups will be Fetched in "tar storage absolute path on host" ...
+The .tar backups will be Fetched in the argument passed as `--storage`. It works differently from the backup, because for the restore, a container is launched on the docker host with the data storage dir mounted directly in order to read the tar files.
 
 
 ## Sources
