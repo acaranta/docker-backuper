@@ -24,7 +24,7 @@ args=argsparser.parse_args()
 #Initialize docker client
 c = docker.Client(base_url='unix://var/run/docker.sock',
                   version='1.9',
-                  timeout=10)
+                  timeout=30)
 
 #Determines if we run within a docker container
 #Might not be truly cleany as a way to check but it works ;)
@@ -150,9 +150,14 @@ elif args.action == "restore":
 			binding = { volumes[v]:{'bind':v} }
 			binds.update(binding)
 	restored_container = c.create_container(imagename,tty=True,volumes=vlist,environment=envlist,name=destname,ports=portslist)
+	c.start(restored_container,binds=binds,port_bindings=portsbindings);
+	print "Starting "+destname+" container first time to fetch volumes information..."
 
 	#Recreate volumes_from (as it does not work when binds+volumes_from are used together
 	infodest = c.inspect_container(restored_container)
+	c.stop(restored_container)
+	print "Waiting "+destname+" container to stop ..."
+	c.wait(restored_container)
 	volumes = infodest['Volumes']
 	vlist = []
 	bindrestore = {}
@@ -181,6 +186,4 @@ elif args.action == "restore":
 	c.remove_container(restorer_container)
 
 	print "Starting "+destname+" container..."
-	c.start(restored_container,binds=binds,port_bindings=portsbindings);
-else:
-	usage()
+	c.start(restored_container,port_bindings=portsbindings)
