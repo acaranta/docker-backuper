@@ -1,4 +1,4 @@
-docker-volume-backup
+docker-backuper
 ====================
 
 a python script to backup/restore the docker containers / volumes.
@@ -51,14 +51,14 @@ This command will restore the container `containername` and its volumes as a new
 ### Run as a Container:
 First, you need to build it :
 ```
-docker build --rm --no-cache -t docker-volume-backup .
+docker build --rm --no-cache -t docker-backuper .
 ```
 
 Once done, can can backup using :
 ```
 docker run -t -i --rm \
   -v /var/lib/docker/vfs:/var/lib/docker/vfs \
-  -v /var/run/docker.sock:/var/run/docker.sock -v /tmp:/backup docker-volume-backup \
+  -v /var/run/docker.sock:/var/run/docker.sock -v /tmp:/backup docker-backuper \
   backup <container> 
 ```
 The .tar backups will be stored in /backup ... which you can bind to any dir on your docker host (above on `/tmp` not a good idea ;) )
