@@ -18,7 +18,7 @@ pip install docker-py
 ##How to use
 Running backup.py with -h will produce :
 ```
-usage: backup.py [-h] [-s Absolute_Storage_Path] [-d destcontainername]
+usage: backup.py [-h] [-s Absolute_Storage_Path] [-d destcontainername] [-t]
                  {backup,restore} container
 
 positional arguments:
@@ -34,12 +34,23 @@ optional arguments:
   -d destcontainername, --destcontainer destcontainername
                         [RESTORE] name of the restored container, defaults to
                         source container name
+  -t, --stopcontainer   [BACKUP] Should we stop the source container before
+                        extracting/saving its volumes (useful for files to be
+                        closed prior the backup)
 ```
 ### Natively on host, BACKUP :
 ```
 ./backup.py backup containername --storage /tmp 
 ```
 This command will save the metadata and volumes as a tar file named : `/tmp/containername.tar`
+
+
+```
+./backup.py backup containername --storage /tmp --stopcontainer
+```
+This command will save the metadata and volumes as a tar file named : `/tmp/containername.tar`
+Additionnaly, the source container will be stopped before backup and restarted afterwards
+
 ### Natively on host, RESTORE :
 ```
 ./backup.py restore containername --storage /tmp --destcontainer newone
@@ -63,8 +74,9 @@ docker run -t -i --rm \
   acaranta/docker-backuper \
   backup <container> 
 ```
-The .tar backups will be stored in /backup ... which you can bind to any dir on your docker host (above on `/tmp` not a good idea ;) )
-In this mode, the `--storage` option is ignored as the data will be stored in the bound directory `/backup`
+The .tar backups will be stored in /backup ... which you can bind to any dir on your docker host (above on `/tmp` not a good idea ;) ).
+In this mode, the `--storage` option is ignored as the data will be stored in the bound directory `/backup`.
+
 
 Then you can restore using :
 ```
@@ -77,7 +89,45 @@ Then you can restore using :
 ```
 The .tar backups will be Fetched in the argument passed as `--storage`. It works differently from the backup, because for the restore, a container is launched on the docker host with the data storage dir mounted directly in order to read the tar files, it therefore need the `/backup` binding AND the --storage argument both pointing towards the same path.
 
-##NOTES
+##FULL EXAMPLE
+Let's imagine we want a mysql container and we inject some data :
+```
+$ docker run -p 3306:3306 -e MYSQL_ROOT_PASSWORD=pouet --name mysqlsrv -d mysql
+$ mysql -h 127.0.0.1 -uroot -ppouet -e "create database mytestdb ;"
+$ echo "CREATE TABLE myTable (id mediumint(8) unsigned NOT NULL auto_increment,naming varchar(255) default NULL,  phone varchar(100) default NULL,  PRIMARY KEY (id)) AUTO_INCREMENT=1;
+INSERT INTO myTable (naming,phone) VALUES (\"Brittany Z. Casey\",\"03 38 23 30 49\"),(\"Brandon C. Brady\",\"04 31 19 78 68\"),(\"Celeste I. Fletcher\",\"08 05 11 34 95\"),(\"Jael X. Mueller\",\"04 02 92 34 51\"),(\"Jonah T. Short\",\"09 07 74 41 37\"),(\"Natalie P. Hayes\",\"06 95 60 81 42\"),(\"Idola T. Mason\",\"06 49 92 54 92\"),(\"Indigo D. Chase\",\"04 77 59 48 16\"),(\"David K. Craig\",\"02 98 39 69 02\"),(\"Byron K. Sanders\",\"01 07 76 41 74\");
+INSERT INTO myTable (naming,phone) VALUES (\"Brody D. Fitzpatrick\",\"06 60 39 08 84\"),(\"Grady B. Kline\",\"01 11 62 76 30\"),(\"Tanek O. Nelson\",\"04 34 16 80 50\"),(\"Ralph N. Reeves\",\"06 68 22 14 15\"),(\"Finn F. Castro\",\"06 17 23 14 90\"),(\"Imelda Z. Kemp\",\"02 37 63 50 46\"),(\"Denise A. Mcguire\",\"08 16 40 59 90\"),(\"Kellie U. Pierce\",\"02 63 15 98 34\"),(\"Rhiannon P. Holman\",\"05 60 21 05 15\"),(\"Quail A. Copeland\",\"04 26 63 57 14\");
+" | mysql -h 127.0.0.1 -uroot -ppouet mytestdb 
+$ mysql -h 127.0.0.1 -uroot -ppouet mytestdb -e "select * from myTable"
+```
+Then we backup this container :
+```
+$ docker run -t -i --rm \
+  -v /var/lib/docker/vfs:/var/lib/docker/vfs \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v /tmp:/backup \
+  acaranta/docker-backuper \
+  backup mysqlsrv --storage /tmp --stopcontainer 
+```
+We can remove completely the test container :
+```
+$ docker rm -f mysqlsrv
+```
+And restore from backup :
+```
+$ docker run -t -i --rm \
+  -v /var/lib/docker/vfs:/var/lib/docker/vfs \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v /tmp:/backup \
+  acaranta/docker-backuper \
+  restore mysqlsrv --destname mysqlnewsrv --storage /tmp
+```
+And retest :
+```
+$ mysql -h 127.0.0.1 -uroot -ppouet mytestdb -e "select * from myTable"
+```
+
+##IMPORTANT NOTES
 if a container was launched with a boud volume, ie :
 ```
 docker run -d  -v /srv/docker-external-volumes/registry:/mnt/registry \
