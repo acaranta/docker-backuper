@@ -62,33 +62,33 @@ This command will restore the container `containername` and its volumes as a new
 ### Run as a Container:
 First, you need to build it :
 ```
-docker build --rm --no-cache -t docker-backuper .
+docker build -t docker-backuper .
 ```
 
 Once done, can can backup using :
 ```
 docker run -t -i --rm \
-  -v /var/lib/docker/vfs:/var/lib/docker/vfs \
   -v /var/run/docker.sock:/var/run/docker.sock \
+  --volumes-from <container>
   -v /tmp:/backup \
   acaranta/docker-backuper \
-  backup <container> 
+  backup <container> --stopcontainer
 ```
-The .tar backups will be stored in /backup ... which you can bind to any dir on your docker host (above on `/tmp` not a good idea ;) ).
-In this mode, the `--storage` option is ignored as the data will be stored in the bound directory `/backup`.
-
+* The .tar backups will be stored in /backup ... which you can bind to any dir on your docker host.
+* In this mode, the `--storage` option is ignored as the data will be stored in the bound directory `/backup`.
+* The container's volumes to be backed up are mounted using the --volumes-from option
+* if added, the option `--stopcontainer` will stop the container to backup, and restart it afterwards
 
 Then you can restore using :
 ```
  docker run -t -i --rm \
-  -v /var/lib/docker/vfs:/var/lib/docker/vfs \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  -v /tmp:/backup \
+  -v <TarStoragePath>:/backup \
   acaranta/docker-backuper \
-  restore <container> --destname <newcontainer> --storage /tmp
+  restore <container> --destname <newcontainer> --storage <TarStoragePath>
 ```
-The .tar backups will be Fetched in the argument passed as `--storage`. It works differently from the backup, because for the restore, a container is launched on the docker host with the data storage dir mounted directly in order to read the tar files, it therefore need the `/backup` binding AND the --storage argument both pointing towards the same path.
-
+* The .tar backups will be Fetched in the argument passed as `--storage` and which also has to be bound using `-v` option to `/backup`. It works differently from the backup, because for the restore, a container is launched on the docker host with the data storage dir mounted directly in order to read the tar files, it therefore need the `/backup` binding AND the --storage argument both pointing towards the same path.
+* the container will be restored under the name `<newcontainer>`
 ##FULL EXAMPLE
 Let's imagine we want a mysql container and we inject some data :
 ```
@@ -103,11 +103,11 @@ $ mysql -h 127.0.0.1 -uroot -ppouet mytestdb -e "select * from myTable"
 Then we backup this container :
 ```
 $ docker run -t -i --rm \
-  -v /var/lib/docker/vfs:/var/lib/docker/vfs \
   -v /var/run/docker.sock:/var/run/docker.sock \
+  --volumes-from mysqlsrv
   -v /tmp:/backup \
   acaranta/docker-backuper \
-  backup mysqlsrv --storage /tmp --stopcontainer 
+  backup mysqlsrv --stopcontainer 
 ```
 We can remove completely the test container :
 ```
@@ -116,7 +116,6 @@ $ docker rm -f mysqlsrv
 And restore from backup :
 ```
 $ docker run -t -i --rm \
-  -v /var/lib/docker/vfs:/var/lib/docker/vfs \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v /tmp:/backup \
   acaranta/docker-backuper \

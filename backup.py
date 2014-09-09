@@ -6,6 +6,7 @@ import sys
 import pickle
 import tarfile
 import os
+import re
 from subprocess import call
 
 import pprint
@@ -31,6 +32,16 @@ c = docker.Client(base_url='unix://var/run/docker.sock',
 def dockerized():
 	if 'docker' in open('/proc/1/cgroup').read():
 		return True
+#Currently unused, this sub seems self explanatory
+def getowndockerid():
+	dockerid = ""
+	for line in open('/proc/1/cgroup'):
+		if "docker" in line:
+			dockerid = re.search(r".*/docker/(.*)$",line)
+			return dockerid.group(1)
+	if dockerid == "":
+		return False
+
 
 #Check if a container exists (running or not)
 def check_container_exists(c, name):
@@ -74,8 +85,12 @@ if args.action == "backup":
 		c.stop(name)
 		c.wait(name)
 	for i, v in enumerate(volumes):
-	    print  v, volumes[v]
-	    tar.add(volumes[v],v)
+		print  v, volumes[v]
+		if dockerized():
+		    tar.add(v)
+		else:
+		    tar.add(volumes[v],v)
+
 	tar.close()
 	if args.stopcontainer:
 		print "Restarting container "+name+" ..."
