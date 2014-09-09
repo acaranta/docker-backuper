@@ -17,9 +17,9 @@ argsparser.add_argument("action", choices=["backup", "restore"])
 argsparser.add_argument("container")
 argsparser.add_argument("-s","--storage", help="[BACKUP/RESTORE] where to store/restore data, defaults to current path (for BACKUP running inside a container, this parameter isn't used)", metavar="Absolute_Storage_Path")
 argsparser.add_argument("-d","--destcontainer", help="[RESTORE] name of the restored container, defaults to source container name", metavar="destcontainername")
+argsparser.add_argument("-t","--stopcontainer", help="[BACKUP] Should we stop the source container before extracting/saving its volumes (useful for files to be closed prior the backup)", default=False, action='store_true')
 
 args=argsparser.parse_args()
-
 
 #Initialize docker client
 c = docker.Client(base_url='unix://var/run/docker.sock',
@@ -69,10 +69,17 @@ if args.action == "backup":
 	print "Backing up : " + container_name + " to : " + container_tarfile
 	pickle.dump ( container , open ("metadata","wb") )
 	tar.add("metadata")
+	if args.stopcontainer:
+		print "Stopping container "+name+" before backup as requested"
+		c.stop(name)
+		c.wait(name)
 	for i, v in enumerate(volumes):
 	    print  v, volumes[v]
 	    tar.add(volumes[v],v)
 	tar.close()
+	if args.stopcontainer:
+		print "Restarting container "+name+" ..."
+		c.restart(name)
 
 elif args.action == "restore":
 	#third argument is the restored container name
