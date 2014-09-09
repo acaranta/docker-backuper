@@ -89,6 +89,8 @@ Then you can restore using :
 ```
 * The .tar backups will be Fetched in the argument passed as `--storage` and which also has to be bound using `-v` option to `/backup`. It works differently from the backup, because for the restore, a container is launched on the docker host with the data storage dir mounted directly in order to read the tar files, it therefore need the `/backup` binding AND the --storage argument both pointing towards the same path.
 * the container will be restored under the name `<newcontainer>`
+
+
 ##FULL EXAMPLE
 Let's imagine we want a mysql container and we inject some data :
 ```
