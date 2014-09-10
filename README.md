@@ -18,45 +18,56 @@ pip install docker-py
 ##How to use
 Running backup.py with -h will produce :
 ```
-usage: backup.py [-h] [-s Absolute_Storage_Path] [-d destcontainername] [-t]
-                 {backup,restore} container
+usage: backup.py [-h] [-s Absolute_Storage_Path | [-b | -t]
+                 [-r | -d destcontainername] [-l]
+                 container
+
+backup/restore/list a container and its volumes
 
 positional arguments:
-  {backup,restore}
   container
 
 optional arguments:
   -h, --help            show this help message and exit
   -s Absolute_Storage_Path, --storage Absolute_Storage_Path
-                        [BACKUP/RESTORE] where to store/restore data, defaults
-                        to current path (for BACKUP running inside a
-                        container, this parameter isn't used)
-  -d destcontainername, --destcontainer destcontainername
-                        [RESTORE] name of the restored container, defaults to
-                        source container name
-  -t, --stopcontainer   [BACKUP] Should we stop the source container before
+                        where to store/restore data, defaults to current path
+                        (for BACKUP running inside a container, this parameter
+                        isn't used)
+  -b, --backup          Backups a container to a tar file
+  -t, --stopcontainer   Should we stop the source container before
                         extracting/saving its volumes (useful for files to be
                         closed prior the backup)
+  -r, --restore         Restore a container from tar backup
+  -d destcontainername, --destcontainer destcontainername
+                        name of the restored container, defaults to source
+                        container name
+  -l, --list            Lists the volumes of the container
 ```
+
+### Natively on host, LIST :
+```
+./backup.py --list containername 
+```
+This command will list all the volumes/mount points/boindings of containername
+
 ### Natively on host, BACKUP :
 ```
-./backup.py backup containername --storage /tmp 
+./backup.py --backup containername --storage /tmp 
 ```
 This command will save the metadata and volumes as a tar file named : `/tmp/containername.tar`
 
 
 ```
-./backup.py backup containername --storage /tmp --stopcontainer
+./backup.py --backup containername --storage /tmp --stopcontainer
 ```
 This command will save the metadata and volumes as a tar file named : `/tmp/containername.tar`
 Additionnaly, the source container will be stopped before backup and restarted afterwards
 
 ### Natively on host, RESTORE :
 ```
-./backup.py restore containername --storage /tmp --destcontainer newone
+./backup.py --restore containername --storage /tmp --destcontainer newone
 ```
 This command will restore the container `containername` and its volumes as a new container named `newone` from the tar file named : `/tmp/containername.tar`
-
 
 
 ### Run as a Container:
