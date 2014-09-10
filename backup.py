@@ -15,25 +15,26 @@ pp = pprint.PrettyPrinter(indent=4)
 
 #Arguments parsing
 argsparser = argparse.ArgumentParser(description="backup/restore/list a container and its volumes")
-argsparser.add_argument("container")
+subparsers = argsparser.add_subparsers(help='sub-command help :', dest="command")
 
-bkprestoregroup = argsparser.add_mutually_exclusive_group()
-bkprestoregroup.add_argument("-s","--storage", help="where to store/restore data, defaults to current path (for BACKUP running inside a container, this parameter isn't used)", metavar="Absolute_Storage_Path")
+listparser = subparsers.add_parser('list', help='Lists the volumes of the container')
+#listparser.add_argument("-l","--list", help="Lists the volumes of the container", action="store_true", default=False)
+listparser.add_argument("container")
 
-backupgroup = bkprestoregroup.add_mutually_exclusive_group()
-restoregroup = bkprestoregroup.add_mutually_exclusive_group()
-listgroup = argsparser.add_mutually_exclusive_group()
+backupparser = subparsers.add_parser('backup', help="Backups a container to a tar file")
+backupparser.add_argument("-t","--stopcontainer", help="Should we stop the source container before extracting/saving its volumes (useful for files to be closed prior the backup)", default=False, action="store_true")
+backupparser.add_argument("-i","--includevolumes", help="include volumes in backup (without this option only backups in /var/lib/docker/vfs on host are backed up")
+backupparser.add_argument("-s","--storage", help="where to store/restore data, defaults to current path (for BACKUP running inside a container, this parameter isn't used)", metavar="Absolute_Storage_Path")
+backupparser.add_argument("container")
 
-backupgroup.add_argument("-b","--backup", help="Backups a container to a tar file", action="store_true", default=False)
-backupgroup.add_argument("-t","--stopcontainer", help="Should we stop the source container before extracting/saving its volumes (useful for files to be closed prior the backup)", default=False, action="store_true")
-
-restoregroup.add_argument("-r","--restore", help="Restore a container from tar backup", action="store_true", default=False)
-restoregroup.add_argument("-d","--destcontainer", help="name of the restored container, defaults to source container name", metavar="destcontainername")
-
-listgroup.add_argument("-l","--list", help="Lists the volumes of the container", action="store_true", default=False)
+restoreparser = subparsers.add_parser('restore', help='Restore a container from tar backup')
+restoreparser.add_argument("-d","--destcontainer", help="name of the restored container, defaults to source container name", metavar="destcontainername")
+restoreparser.add_argument("-s","--storage", help="where to store/restore data, defaults to current path (for BACKUP running inside a container, this parameter isn't used)", metavar="Absolute_Storage_Path")
+restoreparser.add_argument("container")
 
 args=argsparser.parse_args()
 
+print args
 #Initialize docker client
 c = docker.Client(base_url='unix://var/run/docker.sock',
                   version='1.9',
@@ -95,7 +96,7 @@ name = args.container
 #Location of the tar files (for a container running)
 datadir = "/backup"
 
-if args.backup:
+if args.command == "backup":
 	if not check_container_exists(c, name):
 		print "Container "+name+" not found !"
 		sys.exit(3)
@@ -117,6 +118,18 @@ if args.backup:
 	print "Backing up : " + container_name + " to : " + container_tarfile
 	pickle.dump ( container , open ("metadata","wb") )
 	tar.add("metadata")
+	#Compute and prepare the volumes to backup
+	bkpvolumes = {}
+	for i, v in enumerate(volumes):
+		print  v, volumes[v]
+		if args.includevolumes:
+			for r in enumerate(args.includevolumes.split(',')):
+				print "Arg : "+str(r)
+			sys.exit()
+			if dockerized():
+			    tar.add(v)
+			else:
+			    tar.add(volumes[v],v)
 	if args.stopcontainer:
 		print "Stopping container "+name+" before backup as requested"
 		c.stop(name)
@@ -134,7 +147,7 @@ if args.backup:
 		c.restart(name)
 
 
-elif args.restore:
+elif args.command == "restore":
 	#third argument is the restored container name
 	destname = args.container
 	if args.destcontainer:
@@ -242,7 +255,7 @@ elif args.restore:
 	print "Starting "+destname+" container..."
 	c.start(restored_container,port_bindings=portsbindings)
 
-elif args.list:
+elif args.command == "list":
 	if not check_container_exists(c, name):
 		print "Container "+name+" not found !"
 		sys.exit(3)
