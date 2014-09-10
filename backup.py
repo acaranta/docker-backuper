@@ -43,6 +43,34 @@ def getowndockerid():
 	if dockerid == "":
 		return False
 
+def getTerminalSize():
+    import os
+    env = os.environ
+    def ioctl_GWINSZ(fd):
+        try:
+            import fcntl, termios, struct, os
+            cr = struct.unpack('hh', fcntl.ioctl(fd, termios.TIOCGWINSZ,
+        '1234'))
+        except:
+            return
+        return cr
+    cr = ioctl_GWINSZ(0) or ioctl_GWINSZ(1) or ioctl_GWINSZ(2)
+    if not cr:
+        try:
+            fd = os.open(os.ctermid(), os.O_RDONLY)
+            cr = ioctl_GWINSZ(fd)
+            os.close(fd)
+        except:
+            pass
+    if not cr:
+        cr = (env.get('LINES', 25), env.get('COLUMNS', 80))
+
+        ### Use get(key[, default]) instead of a try/catch
+        #try:
+        #    cr = (env['LINES'], env['COLUMNS'])
+        #except:
+        #    cr = (25, 80)
+    return int(cr[1]), int(cr[0])
 
 #Check if a container exists (running or not)
 def check_container_exists(c, name):
@@ -219,8 +247,8 @@ elif args.action == "list":
 	if not check_container_exists(c, name):
 		print "Container "+name+" not found !"
 		sys.exit(3)
+	(cwidth, cheight) = getTerminalSize()
 	container = c.inspect_container(name)
-##	pp.pprint(container)
 	container_name =  container['Name']
 	container_tarfile = ""
 	volumes =  container['Volumes']
@@ -228,6 +256,8 @@ elif args.action == "list":
 		print "Volumes on container "+name+" ..."
 		table = texttable.Texttable()
 		table.set_cols_align(["l", "l"])
+		cwidth = (cwidth-8)/2
+		table.set_cols_width([cwidth, cwidth])
 		table.header(["Mount point (in container)", "Bound to (on docker host)"])
 		for i, v in enumerate(volumes):
 			table.add_row([v, volumes[v]])
