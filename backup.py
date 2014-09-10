@@ -18,19 +18,18 @@ argsparser = argparse.ArgumentParser(description="backup/restore/list a containe
 subparsers = argsparser.add_subparsers(help='sub-command help :', dest="command")
 
 listparser = subparsers.add_parser('list', help='Lists the volumes of the container')
-#listparser.add_argument("-l","--list", help="Lists the volumes of the container", action="store_true", default=False)
-listparser.add_argument("container")
+listparser.add_argument("container", help="Name of the container")
 
 backupparser = subparsers.add_parser('backup', help="Backups a container to a tar file")
 backupparser.add_argument("-t","--stopcontainer", help="Should we stop the source container before extracting/saving its volumes (useful for files to be closed prior the backup)", default=False, action="store_true")
 backupparser.add_argument("-i","--includevolumes", help="include volumes in backup (without this option only backups in /var/lib/docker/vfs on host are backed up")
 backupparser.add_argument("-s","--storage", help="where to store/restore data, defaults to current path (for BACKUP running inside a container, this parameter isn't used)", metavar="Absolute_Storage_Path")
-backupparser.add_argument("container")
+backupparser.add_argument("container", help="Name of the container")
 
 restoreparser = subparsers.add_parser('restore', help='Restore a container from tar backup')
 restoreparser.add_argument("-d","--destcontainer", help="name of the restored container, defaults to source container name", metavar="destcontainername")
 restoreparser.add_argument("-s","--storage", help="where to store/restore data, defaults to current path (for BACKUP running inside a container, this parameter isn't used)", metavar="Absolute_Storage_Path")
-restoreparser.add_argument("container")
+restoreparser.add_argument("container", help="Name of the container")
 
 args=argsparser.parse_args()
 
