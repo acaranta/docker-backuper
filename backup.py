@@ -33,7 +33,6 @@ restoreparser.add_argument("container", help="Name of the container")
 
 args=argsparser.parse_args()
 
-print args
 #Initialize docker client
 c = docker.Client(base_url='unix://var/run/docker.sock',
                   version='1.9',
