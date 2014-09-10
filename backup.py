@@ -20,10 +20,6 @@ argsparser.add_argument("container")
 bkprestoregroup = argsparser.add_mutually_exclusive_group()
 bkprestoregroup.add_argument("-s","--storage", help="where to store/restore data, defaults to current path (for BACKUP running inside a container, this parameter isn't used)", metavar="Absolute_Storage_Path")
 
-#backupgroup = maingroup.add_argument_group()
-#restoregroup = maingroup.add_argument_group()
-#listgroup = maingroup.add_argument_group()
-
 backupgroup = bkprestoregroup.add_mutually_exclusive_group()
 restoregroup = bkprestoregroup.add_mutually_exclusive_group()
 listgroup = argsparser.add_mutually_exclusive_group()
@@ -57,6 +53,7 @@ def getowndockerid():
 			return dockerid.group(1)
 	if dockerid == "":
 		return False
+
 ##Returns the terminal size WxH
 #Found on http://stackoverflow.com/a/566752/2646228
 def getTerminalSize():
@@ -103,12 +100,10 @@ if args.backup:
 		print "Container "+name+" not found !"
 		sys.exit(3)
 	container = c.inspect_container(name)
-##	pp.pprint(container)
 	container_name =  container['Name']
 	container_tarfile = ""
 	volumes =  container['Volumes']
 	
-#NEED TO FIND A WAY TO SET DIFFERENT PATHS FOR BACK (Containerized backup TOO ?)
 	if dockerized():
 		tar = tarfile.open(datadir + "/" + name + ".tar", "w:gz")
 		container_tarfile = datadir + "/" + name + ".tar"
@@ -152,8 +147,6 @@ elif args.restore:
 	if dockerized() and not args.storage:
 		print "Restore Storage is missing !"
 		sys.exit(1)
-#	if dockerized() and args.storage:
-#		datadir = args.storage
 
 	container_tarfile = ""
 	if dockerized():
