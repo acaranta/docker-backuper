@@ -7,6 +7,7 @@ import pickle
 import tarfile
 import os
 import re
+import texttable
 from subprocess import call
 
 import pprint
@@ -14,7 +15,7 @@ pp = pprint.PrettyPrinter(indent=4)
 
 #Arguments parsing
 argsparser = argparse.ArgumentParser()
-argsparser.add_argument("action", choices=["backup", "restore"])
+argsparser.add_argument("action", choices=["backup", "restore", "list"])
 argsparser.add_argument("container")
 argsparser.add_argument("-s","--storage", help="[BACKUP/RESTORE] where to store/restore data, defaults to current path (for BACKUP running inside a container, this parameter isn't used)", metavar="Absolute_Storage_Path")
 argsparser.add_argument("-d","--destcontainer", help="[RESTORE] name of the restored container, defaults to source container name", metavar="destcontainername")
@@ -95,6 +96,7 @@ if args.action == "backup":
 	if args.stopcontainer:
 		print "Restarting container "+name+" ..."
 		c.restart(name)
+
 
 elif args.action == "restore":
 	#third argument is the restored container name
@@ -209,3 +211,18 @@ elif args.action == "restore":
 
 	print "Starting "+destname+" container..."
 	c.start(restored_container,port_bindings=portsbindings)
+
+elif args.action == "list":
+	container = c.inspect_container(name)
+##	pp.pprint(container)
+	container_name =  container['Name']
+	container_tarfile = ""
+	volumes =  container['Volumes']
+	if volumes:
+		print "Volumes on container "+name+" ..."
+		table = texttable.Texttable()
+		table.set_cols_align(["c", "c"])
+		table.header(["Mount point (in container)", "Bound to (on docker host)"])
+		for i, v in enumerate(volumes):
+			table.add_row([v, volumes[v]])
+		print table.draw()
