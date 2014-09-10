@@ -14,12 +14,27 @@ import pprint
 pp = pprint.PrettyPrinter(indent=4)
 
 #Arguments parsing
-argsparser = argparse.ArgumentParser()
-argsparser.add_argument("action", choices=["backup", "restore", "list"])
+argsparser = argparse.ArgumentParser(description="backup/restore/list a container and its volumes")
 argsparser.add_argument("container")
-argsparser.add_argument("-s","--storage", help="[BACKUP/RESTORE] where to store/restore data, defaults to current path (for BACKUP running inside a container, this parameter isn't used)", metavar="Absolute_Storage_Path")
-argsparser.add_argument("-d","--destcontainer", help="[RESTORE] name of the restored container, defaults to source container name", metavar="destcontainername")
-argsparser.add_argument("-t","--stopcontainer", help="[BACKUP] Should we stop the source container before extracting/saving its volumes (useful for files to be closed prior the backup)", default=False, action='store_true')
+
+bkprestoregroup = argsparser.add_mutually_exclusive_group()
+bkprestoregroup.add_argument("-s","--storage", help="where to store/restore data, defaults to current path (for BACKUP running inside a container, this parameter isn't used)", metavar="Absolute_Storage_Path")
+
+#backupgroup = maingroup.add_argument_group()
+#restoregroup = maingroup.add_argument_group()
+#listgroup = maingroup.add_argument_group()
+
+backupgroup = bkprestoregroup.add_mutually_exclusive_group()
+restoregroup = bkprestoregroup.add_mutually_exclusive_group()
+listgroup = argsparser.add_mutually_exclusive_group()
+
+backupgroup.add_argument("-b","--backup", help="Backups a container to a tar file", action="store_true", default=False)
+backupgroup.add_argument("-t","--stopcontainer", help="Should we stop the source container before extracting/saving its volumes (useful for files to be closed prior the backup)", default=False, action="store_true")
+
+restoregroup.add_argument("-r","--restore", help="Restore a container from tar backup", action="store_true", default=False)
+restoregroup.add_argument("-d","--destcontainer", help="name of the restored container, defaults to source container name", metavar="destcontainername")
+
+listgroup.add_argument("-l","--list", help="Lists the volumes of the container", action="store_true", default=False)
 
 args=argsparser.parse_args()
 
@@ -83,7 +98,7 @@ name = args.container
 #Location of the tar files (for a container running)
 datadir = "/backup"
 
-if args.action == "backup":
+if args.backup:
 	if not check_container_exists(c, name):
 		print "Container "+name+" not found !"
 		sys.exit(3)
@@ -124,7 +139,7 @@ if args.action == "backup":
 		c.restart(name)
 
 
-elif args.action == "restore":
+elif args.restore:
 	#third argument is the restored container name
 	destname = args.container
 	if args.destcontainer:
@@ -185,10 +200,6 @@ elif args.action == "restore":
 				elif v.split('/')[1] == 'udp':
 					portsbindings[v] = ports[v]
 
-##	print "Ports lists"	
-##	pp.pprint(portslist)
-##	pp.pprint(portsbindings)
-
 	for i, v in enumerate(envs):
 		envlist.append(v)
 
@@ -238,7 +249,7 @@ elif args.action == "restore":
 	print "Starting "+destname+" container..."
 	c.start(restored_container,port_bindings=portsbindings)
 
-elif args.action == "list":
+elif args.list:
 	if not check_container_exists(c, name):
 		print "Container "+name+" not found !"
 		sys.exit(3)
@@ -257,3 +268,7 @@ elif args.action == "list":
 		for i, v in enumerate(volumes):
 			table.add_row([v, volumes[v]])
 		print table.draw()
+else:
+	print "You did not choose any action to be performed [--backup|--restore|--list] !!!"
+	argsparser.print_help()
+	sys.exit()
