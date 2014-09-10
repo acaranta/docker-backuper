@@ -61,6 +61,9 @@ name = args.container
 datadir = "/backup"
 
 if args.action == "backup":
+	if not check_container_exists(c, name):
+		print "Container "+name+" not found !"
+		sys.exit(3)
 	container = c.inspect_container(name)
 ##	pp.pprint(container)
 	container_name =  container['Name']
@@ -213,6 +216,9 @@ elif args.action == "restore":
 	c.start(restored_container,port_bindings=portsbindings)
 
 elif args.action == "list":
+	if not check_container_exists(c, name):
+		print "Container "+name+" not found !"
+		sys.exit(3)
 	container = c.inspect_container(name)
 ##	pp.pprint(container)
 	container_name =  container['Name']
@@ -221,7 +227,7 @@ elif args.action == "list":
 	if volumes:
 		print "Volumes on container "+name+" ..."
 		table = texttable.Texttable()
-		table.set_cols_align(["c", "c"])
+		table.set_cols_align(["l", "l"])
 		table.header(["Mount point (in container)", "Bound to (on docker host)"])
 		for i, v in enumerate(volumes):
 			table.add_row([v, volumes[v]])
