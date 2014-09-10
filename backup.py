@@ -123,7 +123,9 @@ if args.command == "backup":
 			for j,r in enumerate(args.includevolumes.split(',')):
 				if (re.search(str(r),v)) or (re.search(str(r),volumes[v])):
 					bkpvolumes[v] = volumes[v]
-	
+		else:
+			if str(volumes[v]).find('/var/lib/docker/vfs/dir/') >=0 :
+				bkpvolumes[v] = volumes[v]
 	if not bkpvolumes:
 		print "No Volumes Selected !!!"
 		if args.includevolumes:
