@@ -20,30 +20,50 @@ pip install docker-py
 ##How to use
 Running backup.py with -h will produce :
 ```
-usage: backup.py [-h] [-s Absolute_Storage_Path | [-b | -t]
-                 [-r | -d destcontainername] [-l]
-                 container
+usage: backup.py [-h] {list,backup,restore} ...
 
 backup/restore/list a container and its volumes
 
 positional arguments:
-  container
+  {list,backup,restore}
+                        sub-command help :
+    list                Lists the volumes of the container
+    backup              Backups a container to a tar file
+    restore             Restore a container from tar backup
 
 optional arguments:
   -h, --help            show this help message and exit
+```
+
+You can then get help for the sub commands via 
+```
+./backup.py <subcommand> -h
+```
+
+Example for *backup* :
+```
+usage: backup.py backup [-h] [-t] [-i INCLUDEVOLUMES]
+                        [-s Absolute_Storage_Path]
+                        container
+
+positional arguments:
+  container             Name of the container
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -t, --stopcontainer   Should we stop the source container before
+                        extracting/saving its volumes (useful for files to be
+                        closed prior the backup)
+  -i INCLUDEVOLUMES, --includevolumes INCLUDEVOLUMES
+                        include volumes in backup (without this option only
+                        backups in /var/lib/docker/vfs on host are backed up.
+                        The syntax is a string of elements that will be
+                        matched against all volumes/bindings. Elements are
+                        seperated by a coma ',' and can be regex
   -s Absolute_Storage_Path, --storage Absolute_Storage_Path
                         where to store/restore data, defaults to current path
                         (for BACKUP running inside a container, this parameter
                         isn't used)
-  -b, --backup          Backups a container to a tar file
-  -t, --stopcontainer   Should we stop the source container before
-                        extracting/saving its volumes (useful for files to be
-                        closed prior the backup)
-  -r, --restore         Restore a container from tar backup
-  -d destcontainername, --destcontainer destcontainername
-                        name of the restored container, defaults to source
-                        container name
-  -l, --list            Lists the volumes of the container
 ```
 
 ### Natively on host, LIST :
