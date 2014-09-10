@@ -42,7 +42,8 @@ def getowndockerid():
 			return dockerid.group(1)
 	if dockerid == "":
 		return False
-
+##Returns the terminal size WxH
+#Found on http://stackoverflow.com/a/566752/2646228
 def getTerminalSize():
     import os
     env = os.environ
@@ -64,12 +65,6 @@ def getTerminalSize():
             pass
     if not cr:
         cr = (env.get('LINES', 25), env.get('COLUMNS', 80))
-
-        ### Use get(key[, default]) instead of a try/catch
-        #try:
-        #    cr = (env['LINES'], env['COLUMNS'])
-        #except:
-        #    cr = (25, 80)
     return int(cr[1]), int(cr[0])
 
 #Check if a container exists (running or not)
