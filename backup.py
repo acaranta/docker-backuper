@@ -22,7 +22,7 @@ listparser.add_argument("container", help="Name of the container")
 
 backupparser = subparsers.add_parser('backup', help="Backups a container to a tar file")
 backupparser.add_argument("-t","--stopcontainer", help="Should we stop the source container before extracting/saving its volumes (useful for files to be closed prior the backup)", default=False, action="store_true")
-backupparser.add_argument("-i","--includevolumes", help="include volumes in backup (without this option only backups in /var/lib/docker/vfs on host are backed up")
+backupparser.add_argument("-i","--includevolumes", help="include volumes in backup (without this option only backups in /var/lib/docker/vfs on host are backed up. The syntax is a string of elements that will be matched against all volumes/bindings. Elements are seperated by a coma ',' and can be regex")
 backupparser.add_argument("-s","--storage", help="where to store/restore data, defaults to current path (for BACKUP running inside a container, this parameter isn't used)", metavar="Absolute_Storage_Path")
 backupparser.add_argument("container", help="Name of the container")
 
@@ -119,25 +119,30 @@ if args.command == "backup":
 	#Compute and prepare the volumes to backup
 	bkpvolumes = {}
 	for i, v in enumerate(volumes):
-		print  v, volumes[v]
 		if args.includevolumes:
-			for r in enumerate(args.includevolumes.split(',')):
-				print "Arg : "+str(r)
-			sys.exit()
-			if dockerized():
-			    tar.add(v)
-			else:
-			    tar.add(volumes[v],v)
+			for j,r in enumerate(args.includevolumes.split(',')):
+				if (re.search(str(r),v)) or (re.search(str(r),volumes[v])):
+					bkpvolumes[v] = volumes[v]
+	
+	if not bkpvolumes:
+		print "No Volumes Selected !!!"
+		if args.includevolumes:
+			print "Please review your --includevolumes option value : '"+args.includevolumes+"'"
+		else:
+			print "Please use the --includevolumes option" 
+		print "or use the 'list' command to check your container's volumes"
+		sys.exit(4)	
+
 	if args.stopcontainer:
 		print "Stopping container "+name+" before backup as requested"
 		c.stop(name)
 		c.wait(name)
-	for i, v in enumerate(volumes):
-		print  v, volumes[v]
+	for i, v in enumerate(bkpvolumes):
+		print  v, bkpvolumes[v]
 		if dockerized():
 		    tar.add(v)
 		else:
-		    tar.add(volumes[v],v)
+		    tar.add(bkpvolumes[v],v)
 
 	tar.close()
 	if args.stopcontainer:
