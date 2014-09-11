@@ -29,6 +29,7 @@ backupparser.add_argument("container", help="Name of the container")
 restoreparser = subparsers.add_parser('restore', help='Restore a container from tar backup')
 restoreparser.add_argument("-d","--destcontainer", help="name of the restored container, defaults to source container name", metavar="destcontainername")
 restoreparser.add_argument("-s","--storage", help="where to store/restore data, defaults to current path (for BACKUP running inside a container, this parameter isn't used)", metavar="Absolute_Storage_Path")
+restoreparser.add_argument("-r","--restoreinplace", help="if the backed up container had mounted (bound) directories on host, should we restore these bindings AND the data in it (overwriting data on host maybe)")
 restoreparser.add_argument("container", help="Name of the container")
 
 args=argsparser.parse_args()
@@ -219,11 +220,12 @@ elif args.command == "restore":
 		vlist.append(v)
 		#check if volume has a binding, and add it to bindings for inplace restore
 		if str(volumes[v]).find('/var/lib/docker/vfs/dir/') < 0:
-			binding = { volumes[v]:{'bind':v} }
-			binds.update(binding)
+			if args.restoreinplace:
+				binding = { volumes[v]:{'bind':v} }
+				binds.update(binding)
 	restored_container = c.create_container(imagename,tty=True,volumes=vlist,environment=envlist,name=destname,ports=portslist)
-	c.start(restored_container,binds=binds,port_bindings=portsbindings);
 	print "Starting "+destname+" container first time to fetch volumes information..."
+	c.start(restored_container,binds=binds,port_bindings=portsbindings);
 
 	#Recreate volumes_from (as it does not work when binds+volumes_from are used together
 	infodest = c.inspect_container(restored_container)
