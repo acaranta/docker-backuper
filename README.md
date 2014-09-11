@@ -18,9 +18,9 @@ pip install docker-py
 
 
 ##How to use
-Running backup.py with -h will produce :
+Running backuper.py with -h will produce :
 ```
-usage: backup.py [-h] {list,backup,restore} ...
+usage: backuper.py [-h] {list,backup,restore} ...
 
 backup/restore/list a container and its volumes
 
@@ -37,14 +37,14 @@ optional arguments:
 
 You can then get help for the sub commands via 
 ```
-./backup.py <subcommand> -h
+./backuper.py <subcommand> -h
 ```
 
 Help for *backup* :
 ```
-$ ./backup.py backup -h
+$ ./backuper.py backup -h
 
-usage: backup.py backup [-h] [-t] [-i INCLUDEVOLUMES]
+usage: backuper.py backup [-h] [-t] [-i INCLUDEVOLUMES]
                         [-s Absolute_Storage_Path]
                         container
 
@@ -70,8 +70,8 @@ optional arguments:
 
 Help for *list* :
 ```
-$ ./backup.py list -h
-usage: backup.py list [-h] container
+$ ./backuper.py list -h
+usage: backuper.py list [-h] container
 
 positional arguments:
   container   Name of the container
@@ -82,9 +82,9 @@ optional arguments:
 
 Help for *restore* :
 ```
-$ ./backup.py restore -h
+$ ./backuper.py restore -h
 
-usage: backup.py restore [-h] [-d destcontainername]
+usage: backuper.py restore [-h] [-d destcontainername]
                          [-s Absolute_Storage_Path]
                          container
 
@@ -104,26 +104,26 @@ optional arguments:
 
 ### Natively on host, LIST :
 ```
-./backup.py list containername 
+./backuper.py list containername 
 ```
 This command will list all the volumes/mount points/boindings of containername
 
 ### Natively on host, BACKUP :
 ```
-./backup.py backup containername --storage /tmp 
+./backuper.py backup containername --storage /tmp 
 ```
 This command will save the metadata and volumes as a tar file named : `/tmp/containername.tar`
 
 
 ```
-./backup.py backup containername --storage /tmp --pausecontainer
+./backuper.py backup containername --storage /tmp --pausecontainer
 ```
 This command will save the metadata and volumes as a tar file named : `/tmp/containername.tar`
 Additionnaly, the source container will be stopped before backup and restarted afterwards
 
 ### Natively on host, RESTORE :
 ```
-./backup.py restore containername --storage /tmp --destcontainer newone
+./backuper.py restore containername --storage /tmp --destcontainer newone
 ```
 This command will restore the container `containername` and its volumes as a new container named `newone` from the tar file named : `/tmp/containername.tar`
 

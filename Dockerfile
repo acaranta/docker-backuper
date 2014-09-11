@@ -5,7 +5,7 @@ RUN apt-get update
 RUN apt-get -y install python-pip
 RUN pip install docker-py texttablea 
 
-ADD backup.py /backup.py
+ADD backuper.py /backuper.py
 WORKDIR /
 
-ENTRYPOINT ["python",  "/backup.py" ]
+ENTRYPOINT ["python",  "/backuper.py" ]
