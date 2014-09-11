@@ -1,8 +1,6 @@
 docker-backuper
 ====================
 
-*THIS DOCUMENTATION IS NOT UP TO DATE CURRENTLY*
-
 a python script to backup/restore the docker containers / volumes.
 
 The idea :
