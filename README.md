@@ -40,8 +40,10 @@ You can then get help for the sub commands via
 ./backup.py <subcommand> -h
 ```
 
-Example for *backup* :
+Help for *backup* :
 ```
+$ ./backup.py backup -h
+
 usage: backup.py backup [-h] [-t] [-i INCLUDEVOLUMES]
                         [-s Absolute_Storage_Path]
                         container
@@ -66,28 +68,62 @@ optional arguments:
                         isn't used)
 ```
 
+Help for *list* :
+```
+$ ./backup.py list -h
+usage: backup.py list [-h] container
+
+positional arguments:
+  container   Name of the container
+
+optional arguments:
+  -h, --help  show this help message and exit
+```
+
+Help for *restore* :
+```
+$ ./backup.py restore -h
+
+usage: backup.py restore [-h] [-d destcontainername]
+                         [-s Absolute_Storage_Path]
+                         container
+
+positional arguments:
+  container             Name of the container
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -d destcontainername, --destcontainer destcontainername
+                        name of the restored container, defaults to source
+                        container name
+  -s Absolute_Storage_Path, --storage Absolute_Storage_Path
+                        where to store/restore data, defaults to current path
+                        (for BACKUP running inside a container, this parameter
+                        isn't used)
+```
+
 ### Natively on host, LIST :
 ```
-./backup.py --list containername 
+./backup.py list containername 
 ```
 This command will list all the volumes/mount points/boindings of containername
 
 ### Natively on host, BACKUP :
 ```
-./backup.py --backup containername --storage /tmp 
+./backup.py backup containername --storage /tmp 
 ```
 This command will save the metadata and volumes as a tar file named : `/tmp/containername.tar`
 
 
 ```
-./backup.py --backup containername --storage /tmp --stopcontainer
+./backup.py backup containername --storage /tmp --stopcontainer
 ```
 This command will save the metadata and volumes as a tar file named : `/tmp/containername.tar`
 Additionnaly, the source container will be stopped before backup and restarted afterwards
 
 ### Natively on host, RESTORE :
 ```
-./backup.py --restore containername --storage /tmp --destcontainer newone
+./backup.py restore containername --storage /tmp --destcontainer newone
 ```
 This command will restore the container `containername` and its volumes as a new container named `newone` from the tar file named : `/tmp/containername.tar`
 
