@@ -226,7 +226,8 @@ And retest :
 $ mysql -h 127.0.0.1 -uroot -ppouet mytestdb -e "select * from myTable"
 ```
 
-##IMPORTANT NOTES
+##IMPORTANT NOTES & KNOWN "BUGS"
+###In Place restoring and bound volumes
 if a container was launched with a boud volume, ie :
 ```
 docker run -d  -v /srv/docker-external-volumes/registry:/mnt/registry \
@@ -237,6 +238,17 @@ docker run -d  -v /srv/docker-external-volumes/registry:/mnt/registry \
 (here `/srv/docker-external-volumes/registry` --> `/mnt/registry`)).
 The restore will create a new volumes under `/var/lib/docker/vfs` unless option `--restoreinplace` is added.
 In this case, the restore WILL take place in the bound path on host ... aka it will overwrite (it data is present) the contents of `/srv/docker-external-volumes/registry` !!!
+
+###Docker UNIX Socket and not TCP socket
+Why is the docker client access statically set to use the docker socket `/var/run/docker.sock` instead of gibing the choice to use either unix socket or TCP socket ?
+That is not a mistake, that is a choice I made : to be clear the backup/restore NEEDS to access the docker host's filesystem.
+You could in theory do that while using local tcp socket to the docker API ... but allowing this could generate (esay) mistake by running the backup/restore distantly ... while trying to work on local Filesystem ... and err ... BAM ! ;)
+So until I found a better way, it should stay this way ;)
+
+###Restarting the container during backup
+If you use the `--pausecontainer` container option during backup, bear in mind that containers linked to the backed up container will have to be recreated in order to regenerate links !!!
+Dynamic links are a strongly wished feature in docker (https://github.com/docker/docker/issues/3155). But for the time being, restart or stop/start breaks them.
+You have been warned ;)
 
 ##TODO
 * add a way to nicely name the tar files ?
