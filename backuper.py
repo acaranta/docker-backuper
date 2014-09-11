@@ -215,8 +215,16 @@ elif args.command == "restore":
 	for i, v in enumerate(envs):
 		envlist.append(v)
 
+	#Preparing nice volumes restored output
+	table = texttable.Texttable()
+	table.set_cols_align(["l", "l"])
+       	(cwidth, cheight) = getTerminalSize()
+	cwidth = (cwidth-8)/2
+	table.set_cols_width([cwidth, cwidth])
+	table.header(["Mount point (in container)", "Bound to (on docker host)"])
+
+
 	for i, v in enumerate(volumes):
-       		print  v, volumes[v]
 		vlist.append(v)
 		#check if volume has a binding, and add it to bindings for inplace restore
 		if str(volumes[v]).find('/var/lib/docker/vfs/dir/') < 0:
@@ -236,10 +244,13 @@ elif args.command == "restore":
 	vlist = []
 	bindrestore = {}
 	for i, v in enumerate(volumes):
+		table.add_row([v, volumes[v]])
 		vlist.append(v)
 		binding = { volumes[v]:{'bind':v} }
 		bindrestore.update(binding)
 
+	
+	print table.draw()
         #Add tar storage to bindings list
         if dockerized():
                 datadir = args.storage

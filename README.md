@@ -83,8 +83,8 @@ Help for *restore* :
 $ ./backuper.py restore -h
 
 usage: backuper.py restore [-h] [-d destcontainername]
-                         [-s Absolute_Storage_Path]
-                         container
+                           [-s Absolute_Storage_Path] [-r]
+                           container
 
 positional arguments:
   container             Name of the container
@@ -98,6 +98,9 @@ optional arguments:
                         where to store/restore data, defaults to current path
                         (for BACKUP running inside a container, this parameter
                         isn't used)
+  -r, --restoreinplace  if the backed up container had mounted (bound)
+                        directories on host, should we restore these bindings
+                        AND the data in it (overwriting data on host maybe)
 ```
 
 ### Natively on host, LIST :
@@ -232,14 +235,12 @@ docker run -d  -v /srv/docker-external-volumes/registry:/mnt/registry \
 	-p 5000:5000 --name my_registry registry
 ```
 (here `/srv/docker-external-volumes/registry` --> `/mnt/registry`)).
-The restore WILL take place in this bound path ... aka it will overwrite (it data is present) the contents of `/srv/docker-external-volumes/registry` !!!
-That is not a bug, it was designed like this ;)
+The restore will create a new volumes under `/var/lib/docker/vfs` unless option `--restoreinplace` is added.
+In this case, the restore WILL take place in the bound path on host ... aka it will overwrite (it data is present) the contents of `/srv/docker-external-volumes/registry` !!!
 
 ##TODO
-* remove the bound inplace restore by default and add a `--bound-restore` option ?
 * add a way to nicely name the tar files ?
 * add a way to timestamp the tar files and let the user choose different restore points ?
-* add a few other checks and maybe errors interceptions to clean temp containers
 * Review all the metadata parameters that still needs to be restored :
 * * ro or rw volumes
 * * ...
