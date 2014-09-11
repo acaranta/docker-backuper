@@ -13,7 +13,7 @@ The idea :
 
 ```
 apt-get install python-pip 
-pip install docker-py
+pip install docker-py texttable
 ```
 
 
@@ -163,7 +163,8 @@ Then you can restore using :
 ##FULL EXAMPLE
 Let's imagine we want a mysql container and we inject some data :
 ```
-$ docker run -p 3306:3306 -e MYSQL_ROOT_PASSWORD=pouet --name mysqlsrv -d mysql
+$ docker run -p 3306:3306 -e MYSQL_ROOT_PASSWORD=pouet -v /var/mytest:/justanexample --name mysqlsrv -d mysql
+$ #Wait a moment (few seconds) for mysql to be available ;)
 $ mysql -h 127.0.0.1 -uroot -ppouet -e "create database mytestdb ;"
 $ echo "CREATE TABLE myTable (id mediumint(8) unsigned NOT NULL auto_increment,naming varchar(255) default NULL,  phone varchar(100) default NULL,  PRIMARY KEY (id)) AUTO_INCREMENT=1;
 INSERT INTO myTable (naming,phone) VALUES (\"Brittany Z. Casey\",\"03 38 23 30 49\"),(\"Brandon C. Brady\",\"04 31 19 78 68\"),(\"Celeste I. Fletcher\",\"08 05 11 34 95\"),(\"Jael X. Mueller\",\"04 02 92 34 51\"),(\"Jonah T. Short\",\"09 07 74 41 37\"),(\"Natalie P. Hayes\",\"06 95 60 81 42\"),(\"Idola T. Mason\",\"06 49 92 54 92\"),(\"Indigo D. Chase\",\"04 77 59 48 16\"),(\"David K. Craig\",\"02 98 39 69 02\"),(\"Byron K. Sanders\",\"01 07 76 41 74\");
@@ -171,14 +172,41 @@ INSERT INTO myTable (naming,phone) VALUES (\"Brody D. Fitzpatrick\",\"06 60 39 0
 " | mysql -h 127.0.0.1 -uroot -ppouet mytestdb 
 $ mysql -h 127.0.0.1 -uroot -ppouet mytestdb -e "select * from myTable"
 ```
+Then we check what volumes can be backed up :
+```
+$ docker run -t -i --rm \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  acaranta/docker-backuper \
+  list mysqlsrv
+Volumes on container mysqlsrv ...
++-------------------------------------------------------+-------------------------------------------------------+
+|              Mount point (in container)               |               Bound to (on docker host)               |
++=======================================================+=======================================================+
+| /justanexample                                        | /var/mytest                                           |
++-------------------------------------------------------+-------------------------------------------------------+
+| /var/lib/mysql                                        | /var/lib/docker/vfs/dir/aad993c1c9dbb9d3e31a9e7c48a31 |
+|                                                       | 6b88bc607e3416b57deaaf44ca5cd1c887a                   |
++-------------------------------------------------------+-------------------------------------------------------+
+```
+The result show that there are 2 volumes that can be backed up. 
+One of them volume resides in docker's `/var/lib/docker/vfs/dir/` folder.
+By default, launching a backup without specifying anything more would include this volume only.
+
+However let's imagine we want both volumes included ... We would use the `--includevolumes` option :
+* `--includevolumes "/justanexample,/var/lib/mysql"`
+* `--includevolumes ".*"`
+* `--includevolumes "justan,vfs"`
+* `--includevolumes "exam,mytest"`
+All of these would match both volumes !
+
 Then we backup this container :
 ```
 $ docker run -t -i --rm \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  --volumes-from mysqlsrv
+  --volumes-from mysqlsrv \
   -v /tmp:/backup \
   acaranta/docker-backuper \
-  backup mysqlsrv --pausecontainer 
+  backup mysqlsrv --pausecontainer --includevolumes ".*"
 ```
 We can remove completely the test container :
 ```
@@ -190,7 +218,7 @@ $ docker run -t -i --rm \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v /tmp:/backup \
   acaranta/docker-backuper \
-  restore mysqlsrv --destname mysqlnewsrv --storage /tmp
+  restore mysqlsrv --destcontainer mysqlnewsrv --storage /tmp
 ```
 And retest :
 ```
@@ -213,11 +241,10 @@ That is not a bug, it was designed like this ;)
 * remove the bound inplace restore by default and add a `--bound-restore` option ?
 * add a way to nicely name the tar files ?
 * add a way to timestamp the tar files and let the user choose different restore points ?
-* add a check to stop the backup if the container has no volumes !
 * add a few other checks and maybe errors interceptions to clean temp containers
 * Review all the metadata parameters that still needs to be restored :
-** ro or rw volumes
-** ...
+* * ro or rw volumes
+* * ...
 
 ##DISCLAIMER 
 Please TEST your backup/restore procedure, your data, etc ... this is provided as-is and does not garantee anything ! ;)
