@@ -53,7 +53,7 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-  -t, --stopcontainer   Should we stop the source container before
+  -p, --pausecontainer   Should we stop the source container before
                         extracting/saving its volumes (useful for files to be
                         closed prior the backup)
   -i INCLUDEVOLUMES, --includevolumes INCLUDEVOLUMES
@@ -116,7 +116,7 @@ This command will save the metadata and volumes as a tar file named : `/tmp/cont
 
 
 ```
-./backup.py backup containername --storage /tmp --stopcontainer
+./backup.py backup containername --storage /tmp --pausecontainer
 ```
 This command will save the metadata and volumes as a tar file named : `/tmp/containername.tar`
 Additionnaly, the source container will be stopped before backup and restarted afterwards
@@ -141,12 +141,12 @@ docker run -t -i --rm \
   --volumes-from <container>
   -v /tmp:/backup \
   acaranta/docker-backuper \
-  backup <container> --stopcontainer
+  backup <container> --pausecontainer
 ```
 * The .tar backups will be stored in /backup ... which you can bind to any dir on your docker host.
 * In this mode, the `--storage` option is ignored as the data will be stored in the bound directory `/backup`.
 * The container's volumes to be backed up are mounted using the --volumes-from option
-* if added, the option `--stopcontainer` will stop the container to backup, and restart it afterwards
+* if added, the option `--pausecontainer` will stop the container to backup, and restart it afterwards
 
 Then you can restore using :
 ```
@@ -178,7 +178,7 @@ $ docker run -t -i --rm \
   --volumes-from mysqlsrv
   -v /tmp:/backup \
   acaranta/docker-backuper \
-  backup mysqlsrv --stopcontainer 
+  backup mysqlsrv --pausecontainer 
 ```
 We can remove completely the test container :
 ```

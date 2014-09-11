@@ -21,7 +21,7 @@ listparser = subparsers.add_parser('list', help='Lists the volumes of the contai
 listparser.add_argument("container", help="Name of the container")
 
 backupparser = subparsers.add_parser('backup', help="Backups a container to a tar file")
-backupparser.add_argument("-t","--stopcontainer", help="Should we stop the source container before extracting/saving its volumes (useful for files to be closed prior the backup)", default=False, action="store_true")
+backupparser.add_argument("-p","--pausecontainer", help="Should we stop the source container before extracting/saving its volumes and restart it after backup (useful for files to be closed prior the backup)", default=False, action="store_true")
 backupparser.add_argument("-i","--includevolumes", help="include volumes in backup (without this option only backups in /var/lib/docker/vfs on host are backed up. The syntax is a string of elements that will be matched against all volumes/bindings. Elements are seperated by a coma ',' and can be regex")
 backupparser.add_argument("-s","--storage", help="where to store/restore data, defaults to current path (for BACKUP running inside a container, this parameter isn't used)", metavar="Absolute_Storage_Path")
 backupparser.add_argument("container", help="Name of the container")
@@ -135,7 +135,7 @@ if args.command == "backup":
 		print "or use the 'list' command to check your container's volumes"
 		sys.exit(4)	
 
-	if args.stopcontainer:
+	if args.pausecontainer:
 		print "Stopping container "+name+" before backup as requested"
 		c.stop(name)
 		c.wait(name)
@@ -147,7 +147,7 @@ if args.command == "backup":
 		    tar.add(bkpvolumes[v],v)
 
 	tar.close()
-	if args.stopcontainer:
+	if args.pausecontainer:
 		print "Restarting container "+name+" ..."
 		c.restart(name)
 
