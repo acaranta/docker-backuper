@@ -1,5 +1,6 @@
 docker-backuper
 ====================
+[![Build Status](https://travis-ci.org/acaranta/docker-backuper.svg?branch=master)](https://travis-ci.org/acaranta/docker-backuper)
 
 a python script to backup/restore the docker containers / volumes.
 
