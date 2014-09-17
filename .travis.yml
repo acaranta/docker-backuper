@@ -4,6 +4,6 @@ python:
 - '2.7'
 - '3.3'
 install:
-- pip install docker-py texttable
+- pip install -r py-reqs.txt
 script:
 - flake8 .
