@@ -14,22 +14,55 @@ import pprint
 pp = pprint.PrettyPrinter(indent=4)
 
 # Arguments parsing
-argsparser = argparse.ArgumentParser(description="backup/restore/list a container and its volumes")
-subparsers = argsparser.add_subparsers(help='sub-command help : ', dest="command")
+argsparser = argparse.ArgumentParser(
+    description="backup/restore/list a container and its volumes")
+subparsers = argsparser.add_subparsers(
+    help='sub-command help : ', dest="command")
 
-listparser = subparsers.add_parser('list', help='Lists the volumes of the container')
-listparser.add_argument("container", help="Name of the container")
+listparser = subparsers.add_parser(
+    'list', help='Lists the volumes of the container')
+listparser.add_argument(
+    "container", help="Name of the container")
 
-backupparser = subparsers.add_parser('backup', help="Backups a container to a tar file")
-backupparser.add_argument("-p", "--pausecontainer", help="Should we stop the source container before extracting/saving its volumes and restart it after backup (useful for files to be closed prior the backup)", default=False, action="store_true")
-backupparser.add_argument("-i", "--includevolumes", help="include volumes in backup (without this option only backups in /var/lib/docker/vfs on host are backed up. The syntax is a string of elements that will be matched against all volumes/bindings. Elements are seperated by a coma ', ' and can be regex")
-backupparser.add_argument("-s", "--storage", help="where to store/restore data, defaults to current path (for BACKUP running inside a container, this parameter isn't used)", metavar="Absolute_Storage_Path")
+backupparser = subparsers.add_parser(
+    'backup', help="Backups a container to a tar file")
+backupparser.add_argument(
+    "-p", "--pausecontainer",
+    help="Should we stop the source container before extracting/saving "
+    "its volumes and restart it after backup (useful for files "
+    "to be closed prior the backup)",
+    default=False, action="store_true")
+backupparser.add_argument(
+    "-i", "--includevolumes",
+    help="include volumes in backup (without this option only backups in "
+    "/var/lib/docker/vfs on host are backed up. The syntax is a string of "
+    "elements that will be matched against all volumes/bindings. Elements are "
+    "seperated by a coma ', ' and can be regex")
+backupparser.add_argument(
+    "-s", "--storage",
+    help="where to store/restore data, defaults to current path (for BACKUP "
+    "running inside a container, this parameter isn't used)",
+    metavar="Absolute_Storage_Path")
 backupparser.add_argument("container", help="Name of the container")
 
-restoreparser = subparsers.add_parser('restore', help='Restore a container from tar backup')
-restoreparser.add_argument("-d", "--destcontainer", help="name of the restored container, defaults to source container name", metavar="destcontainername")
-restoreparser.add_argument("-s", "--storage", help="where to store/restore data, defaults to current path (for BACKUP running inside a container, this parameter isn't used)", metavar="Absolute_Storage_Path")
-restoreparser.add_argument("-r", "--restoreinplace", help="if the backed up container had mounted (bound) directories on host, should we restore these bindings AND the data in it (overwriting data on host maybe)", default=False, action="store_true")
+restoreparser = subparsers.add_parser(
+    'restore',
+    help='Restore a container from tar backup')
+restoreparser.add_argument(
+    "-d", "--destcontainer",
+    help="name of the restored container, defaults to source container name",
+    metavar="destcontainername")
+restoreparser.add_argument(
+    "-s", "--storage",
+    help="where to store/restore data, defaults to current path (for BACKUP "
+    "running inside a container, this parameter isn't used)",
+    metavar="Absolute_Storage_Path")
+restoreparser.add_argument(
+    "-r", "--restoreinplace",
+    help="if the backed up container had mounted (bound) directories on host, "
+    "should we restore these bindings AND the data in it "
+    "(overwriting data on host maybe)",
+    default=False, action="store_true")
 restoreparser.add_argument("container", help="Name of the container")
 
 args = argsparser.parse_args()
@@ -72,7 +105,8 @@ def getTerminalSize():
             import fcntl
             import termios
             import struct
-            cr = struct.unpack('hh', fcntl.ioctl(fd, termios.TIOCGWINSZ, '1234'))
+            cr = struct.unpack(
+                'hh', fcntl.ioctl(fd, termios.TIOCGWINSZ, '1234'))
         except:
             return
         return cr
@@ -141,7 +175,8 @@ if args.command == "backup":
     if not bkpvolumes:
         print "No Volumes Selected !!!"
         if args.includevolumes:
-            print "Please review your --includevolumes option value : '" + args.includevolumes + "'"
+            print "Please review your --includevolumes "
+            "option value : '" + args.includevolumes + "'"
         else:
             print "Please use the --includevolumes option"
         print "or use the 'list' command to check your container's volumes"
@@ -171,7 +206,8 @@ elif args.command == "restore":
         destname = args.destcontainer
 
     if check_container_exists(c, destname):
-        print "Destination container : " + destname + " already exists ... cannot continue !!"
+        print "Destination container : " + destname + " already exists ... "
+        "cannot continue !!"
         sys.exit(2)
 
     if dockerized() and not args.storage:
@@ -214,9 +250,11 @@ elif args.command == "restore":
                     print p['HostIp']
                     print p['HostPort']
                     if v.split('/')[1] == 'tcp':
-                        portsbindings[int(p['HostPort'])] = (p['HostIp'], v.split('/')[0])
+                        portsbindings[int(p['HostPort'])] = (
+                            p['HostIp'], v.split('/')[0])
                     elif v.split('/')[1] == 'udp':
-                        portsbindings[p['HostPort'] + "/udp"] = (p['HostIp'], v.split('/')[0])
+                        portsbindings[p['HostPort'] + "/udp"] = (
+                            p['HostIp'], v.split('/')[0])
             else:
                 if v.split('/')[1] == 'tcp':
                     portsbindings[int(v.split('/')[0])] = ports[v]
@@ -232,20 +270,26 @@ elif args.command == "restore":
     (cwidth, cheight) = getTerminalSize()
     cwidth = (cwidth-8)/2
     table.set_cols_width([cwidth, cwidth])
-    table.header(["Mount point (in container)", "Bound to (on docker host)"])
+    table.header(
+        ["Mount point (in container)", "Bound to (on docker host)"])
 
     for i, v in enumerate(volumes):
         vlist.append(v)
-        # check if volume has a binding, and add it to bindings for inplace restore
+        # check if volume has a binding, and add it to bindings
+        # for inplace restore
         if str(volumes[v]).find('/var/lib/docker/vfs/dir/') < 0:
             if args.restoreinplace:
                 binding = {volumes[v]: {'bind': v}}
                 binds.update(binding)
-    restored_container = c.create_container(imagename, tty=True, volumes=vlist, environment=envlist, name=destname, ports=portslist)
-    print "Starting " + destname + " container first time to fetch volumes information..."
+    restored_container = c.create_container(
+        imagename, tty=True, volumes=vlist,
+        environment=envlist, name=destname, ports=portslist)
+    print "Starting " + destname + " container first time to "
+    "fetch volumes information..."
     c.start(restored_container, binds=binds, port_bindings=portsbindings)
 
-    # Recreate volumes_from (as it does not work when binds + volumes_from are used together
+    # Recreate volumes_from (as it does not work when binds
+    # + volumes_from are used together
     infodest = c.inspect_container(restored_container)
     c.stop(restored_container)
     print "Waiting " + destname + " container to stop ..."
@@ -268,9 +312,13 @@ elif args.command == "restore":
         if args.storage:
             bindrestore.update({args.storage: {'bind': '/backup2'}})
         else:
-            bindrestore.update({str(os.path.dirname(os.path.realpath(__file__))): {'bind': '/backup2'}})
+            bindrestore.update(
+                {str(os.path.dirname(
+                    os.path.realpath(__file__))): {'bind': '/backup2'}})
 
-    restorer_container = c.create_container('ubuntu', detach=False, stdin_open=True, tty=True, command="tar xvf /backup2/" + name + ".tar", volumes=vlist)
+    restorer_container = c.create_container(
+        'ubuntu', detach=False, stdin_open=True, tty=True,
+        command="tar xvf /backup2/" + name + ".tar", volumes=vlist)
     print "Starting Restoration container (" + restorer_container['Id'] + ")"
     c.start(restorer_container, binds=bindrestore)
 
@@ -297,11 +345,13 @@ elif args.command == "list":
         table.set_cols_align(["l", "l"])
         cwidth = (cwidth-8)/2
         table.set_cols_width([cwidth, cwidth])
-        table.header(["Mount point (in container)", "Bound to (on docker host)"])
+        table.header(
+            ["Mount point (in container)", "Bound to (on docker host)"])
         for i, v in enumerate(volumes):
             table.add_row([v, volumes[v]])
         print table.draw()
 else:
-    print "You did not choose any action to be performed [--backup|--restore|--list] !!!"
+    print "You did not choose any action to be performed "
+    "[--backup|--restore|--list] !!!"
     argsparser.print_help()
     sys.exit()
