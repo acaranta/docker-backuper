@@ -1,7 +1,7 @@
 docker-backuper
 ====================
 [![Build Status](https://travis-ci.org/acaranta/docker-backuper.svg?branch=master)](https://travis-ci.org/acaranta/docker-backuper)
-
+ [![Stories in Ready](https://badge.waffle.io/acaranta/docker-backuper.svg?label=ready&title=Ready)](http://waffle.io/acaranta/docker-backuper) 
 a python script to backup/restore the docker containers / volumes.
 
 The idea :
