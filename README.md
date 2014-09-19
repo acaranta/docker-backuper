@@ -5,8 +5,8 @@ docker-backuper
 a python script to backup/restore the docker containers / volumes.
 
 The idea :
-* backup will backup the metadata from a container and its volumes
-* restore will recreate a container from the saved metadata and restore its volumes
+- backup will backup the metadata from a container and its volumes
+- restore will recreate a container from the saved metadata and restore its volumes
 
 ####Requires Python && Docker-py python package.
 
@@ -145,10 +145,10 @@ docker run -t -i --rm \
   acaranta/docker-backuper \
   backup <container> --pausecontainer
 ```
-* The .tar backups will be stored in /backup ... which you can bind to any dir on your docker host.
-* In this mode, the `--storage` option is ignored as the data will be stored in the bound directory `/backup`.
-* The container's volumes to be backed up are mounted using the --volumes-from option
-* if added, the option `--pausecontainer` will stop the container to backup, and restart it afterwards
+- The .tar backups will be stored in /backup ... which you can bind to any dir on your docker host.
+- In this mode, the `--storage` option is ignored as the data will be stored in the bound directory `/backup`.
+- The container's volumes to be backed up are mounted using the --volumes-from option
+- if added, the option `--pausecontainer` will stop the container to backup, and restart it afterwards
 
 Then you can restore using :
 ```
@@ -158,8 +158,8 @@ Then you can restore using :
   acaranta/docker-backuper \
   restore <container> --destname <newcontainer> --storage <TarStoragePath>
 ```
-* The .tar backups will be Fetched in the argument passed as `--storage` and which also has to be bound using `-v` option to `/backup`. It works differently from the backup, because for the restore, a container is launched on the docker host with the data storage dir mounted directly in order to read the tar files, it therefore need the `/backup` binding AND the --storage argument both pointing towards the same path.
-* the container will be restored under the name `<newcontainer>`
+- The .tar backups will be Fetched in the argument passed as `--storage` and which also has to be bound using `-v` option to `/backup`. It works differently from the backup, because for the restore, a container is launched on the docker host with the data storage dir mounted directly in order to read the tar files, it therefore need the `/backup` binding AND the --storage argument both pointing towards the same path.
+- the container will be restored under the name `<newcontainer>`
 
 
 ##FULL EXAMPLE
@@ -195,10 +195,10 @@ One of them volume resides in docker's `/var/lib/docker/vfs/dir/` folder.
 By default, launching a backup without specifying anything more would include this volume only.
 
 However let's imagine we want both volumes included ... We would use the `--includevolumes` option :
-* `--includevolumes "/justanexample,/var/lib/mysql"`
-* `--includevolumes ".*"`
-* `--includevolumes "justan,vfs"`
-* `--includevolumes "exam,mytest"`
+- `--includevolumes "/justanexample,/var/lib/mysql"`
+- `--includevolumes ".*"`
+- `--includevolumes "justan,vfs"`
+- `--includevolumes "exam,mytest"`
 All of these would match both volumes !
 
 Then we backup this container :
@@ -252,11 +252,9 @@ Dynamic links are a strongly wished feature in docker (https://github.com/docker
 You have been warned ;)
 
 ##TODO
-* add a way to nicely name the tar files ?
-* add a way to timestamp the tar files and let the user choose different restore points ?
-* Review all the metadata parameters that still needs to be restored :
-* * ro or rw volumes
-* * ...
+- add a way to nicely name the tar files ?
+- add a way to timestamp the tar files and let the user choose different restore points ?
+- Review all the metadata parameters that still needs to be restored (ie : ro or rw volumes)
 
 ##DISCLAIMER 
 Please TEST your backup/restore procedure, your data, etc ... this is provided as-is and does not garantee anything ! ;)
