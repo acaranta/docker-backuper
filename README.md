@@ -42,26 +42,27 @@ You can then get help for the sub commands via
 
 Help for *backup* :
 ```
-$ ./backuper.py backup -h
-
-usage: backuper.py backup [-h] [-t] [-i INCLUDEVOLUMES]
-                        [-s Absolute_Storage_Path]
-                        container
+usage: backuper.py backup [-h] [-p] [-i INCLUDEVOLUMES]
+                          [-s Absolute_Storage_Path]
+                          container
 
 positional arguments:
   container             Name of the container
 
 optional arguments:
   -h, --help            show this help message and exit
-  -p, --pausecontainer   Should we stop the source container before
-                        extracting/saving its volumes (useful for files to be
-                        closed prior the backup)
+  -p, --pausecontainer  Should we stop the source container before
+                        extracting/saving its volumes and restart it after
+                        backup (useful for files to be closed prior the
+                        backup)if docker is >=1.3, the pause/unpause system
+                        will be usedif docker is <1.3, a stop/restart command
+                        will be used (breaking links)
   -i INCLUDEVOLUMES, --includevolumes INCLUDEVOLUMES
                         include volumes in backup (without this option only
                         backups in /var/lib/docker/vfs on host are backed up.
                         The syntax is a string of elements that will be
                         matched against all volumes/bindings. Elements are
-                        seperated by a coma ',' and can be regex
+                        seperated by a coma ', ' and can be regex
   -s Absolute_Storage_Path, --storage Absolute_Storage_Path
                         where to store/restore data, defaults to current path
                         (for BACKUP running inside a container, this parameter
@@ -122,7 +123,7 @@ This command will save the metadata and volumes as a tar file named : `/tmp/cont
 ./backuper.py backup containername --storage /tmp --pausecontainer
 ```
 This command will save the metadata and volumes as a tar file named : `/tmp/containername.tar`
-Additionnaly, the source container will be stopped before backup and restarted afterwards
+Additionnaly, the source container will be stopped (check KNOWN BUGS below about pausing) before backup and restarted afterwards
 
 ### Natively on host, RESTORE :
 ```
@@ -149,7 +150,7 @@ docker run -t -i --rm \
 - The .tar backups will be stored in /backup ... which you can bind to any dir on your docker host.
 - In this mode, the `--storage` option is ignored as the data will be stored in the bound directory `/backup`.
 - The container's volumes to be backed up are mounted using the --volumes-from option
-- if added, the option `--pausecontainer` will stop the container to backup, and restart it afterwards
+- if added, the option `--pausecontainer` will stop the container to backup, and restart it afterwards (see KNOWN BUGS below about pausing)
 
 Then you can restore using :
 ```
@@ -245,12 +246,13 @@ In this case, the restore WILL take place in the bound path on host ... aka it w
 Why is the docker client access statically set to use the docker socket `/var/run/docker.sock` instead of gibing the choice to use either unix socket or TCP socket ?
 That is not a mistake, that is a choice I made : to be clear the backup/restore NEEDS to access the docker host's filesystem.
 You could in theory do that while using local tcp socket to the docker API ... but allowing this could generate (esay) mistake by running the backup/restore distantly ... while trying to work on local Filesystem ... and err ... BAM ! ;)
-So until I found a better way, it should stay this way ;)
+So until I find a better way, it should stay this way ;)
 
 ###Restarting the container during backup
-If you use the `--pausecontainer` container option during backup, bear in mind that containers linked to the backed up container will have to be recreated in order to regenerate links !!!
-Dynamic links are a strongly wished feature in docker (https://github.com/docker/docker/issues/3155). But for the time being, restart or stop/start breaks them.
-You have been warned ;)
+If you use the `--pausecontainer` container option during backup, bear in mind that 
+there are two ways it can behave :
+- you are using Docker version <1.3 : the `--pausecontainer` option will *stop*/*restart* the container... Therefore containers linked to the backed up container will have to be recreated in order to regenerate links !!! Dynamic links are a strongly wished feature in docker (https://github.com/docker/docker/issues/3155). But for the time being, restart or stop/start breaks them. You have been warned ;)
+- you are using Docker version >=1.3 : the `--pausecontainer` option will use the *pause*/*unpause* commands to hang the container, therefore not breaking links AFAIT(ested) ;)
 
 ##TODO
 - add a way to nicely name the tar files ?

@@ -9,10 +9,10 @@ import os
 import re
 import texttable
 # from subprocess import call
+from distutils.version import LooseVersion, StrictVersion
 
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
-
 # Arguments parsing
 argsparser = argparse.ArgumentParser(
     description="backup/restore/list a container and its volumes")
@@ -30,7 +30,9 @@ backupparser.add_argument(
     "-p", "--pausecontainer",
     help="Should we stop the source container before extracting/saving "
     "its volumes and restart it after backup (useful for files "
-    "to be closed prior the backup)",
+    "to be closed prior the backup)"
+    "if docker is >=1.3, the pause/unpause system will be used"
+    "if docker is <1.3, a stop/restart command will be used (breaking links)",
     default=False, action="store_true")
 backupparser.add_argument(
     "-i", "--includevolumes",
@@ -68,9 +70,10 @@ restoreparser.add_argument("container", help="Name of the container")
 args = argsparser.parse_args()
 
 # Initialize docker client
-c = docker.Client(base_url='unix: //var/run/docker.sock',
+c = docker.Client(base_url='unix://var/run/docker.sock',
                   version='1.9',
                   timeout=30)
+
 
 # Determines if we run within a docker container
 # Might not be truly cleany as a way to check but it works ;)
@@ -80,6 +83,12 @@ def dockerized():
     if 'docker' in open('/proc/1/cgroup').read():
         return True
 
+def is1_3(c):
+    docker_Version = c.version()['Version']
+    if LooseVersion(docker_Version) < LooseVersion("1.3.0"):
+        return True
+    else:
+        return True
 # Currently unused, this sub seems self explanatory
 
 
@@ -154,7 +163,7 @@ if args.command == "backup":
         container_tarfile = datadir + "/" + name + ".tar"
     else:
         if args.storage:
-            tar = tarfile.open(args.storage + "/" + name + ".tar", "w: gz")
+            tar = tarfile.open(args.storage + "/" + name + ".tar", "w:gz")
             container_tarfile = args.storage + "/" + name + ".tar"
         else:
             tar = tarfile.open(name + ".tar", "w: gz")
@@ -183,9 +192,13 @@ if args.command == "backup":
         sys.exit(4)
 
     if args.pausecontainer:
-        print "Stopping container " + name + " before backup as requested"
-        c.stop(name)
-        c.wait(name)
+	if is1_3(c):
+            print "Pausing container " + name + " before backup as requested"
+            c.pause(name)
+        else:
+            print "Stopping container " + name + " before backup as requested"
+            c.stop(name)
+            c.wait(name)
     for i, v in enumerate(bkpvolumes):
         print v, bkpvolumes[v]
         if dockerized():
@@ -195,8 +208,12 @@ if args.command == "backup":
 
     tar.close()
     if args.pausecontainer:
-        print "Restarting container " + name + " ..."
-        c.restart(name)
+	if is1_3(c):
+            print "UNPausing container " + name + " ..."
+            c.unpause(name)
+        else:
+            print "Restarting container " + name + " ..."
+            c.restart(name)
 
 
 elif args.command == "restore":
