@@ -9,7 +9,7 @@ import os
 import re
 import texttable
 # from subprocess import call
-from distutils.version import LooseVersion, StrictVersion
+from distutils.version import LooseVersion
 
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
@@ -82,6 +82,7 @@ c = docker.Client(base_url='unix://var/run/docker.sock',
 def dockerized():
     if 'docker' in open('/proc/1/cgroup').read():
         return True
+
 
 def is1_3(c):
     docker_Version = c.version()['Version']
@@ -192,7 +193,7 @@ if args.command == "backup":
         sys.exit(4)
 
     if args.pausecontainer:
-	if is1_3(c):
+        if is1_3(c):
             print "Pausing container " + name + " before backup as requested"
             c.pause(name)
         else:
@@ -208,7 +209,7 @@ if args.command == "backup":
 
     tar.close()
     if args.pausecontainer:
-	if is1_3(c):
+        if is1_3(c):
             print "UNPausing container " + name + " ..."
             c.unpause(name)
         else:
